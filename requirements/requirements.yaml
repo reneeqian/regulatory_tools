@@ -1,0 +1,215 @@
+requirements:
+
+  # ============================================================
+  # CORE TRACEABILITY (RT-TR)
+  # ============================================================
+
+  - id: RT-TR-01
+    category: Traceability
+    title: Regulatory tools shall support structured requirement definitions in machine-readable format.
+    verification: Unit Test
+
+  - id: RT-TR-02
+    category: Traceability
+    title: Regulatory tools shall validate that all requirement IDs are unique.
+    verification: Unit Test
+
+  - id: RT-TR-03
+    category: Traceability
+    title: Regulatory tools shall validate that all requirement IDs referenced in tests exist.
+    verification: Unit Test
+
+  - id: RT-TR-04
+    category: Traceability
+    title: Regulatory tools shall detect requirements defined but not verified by any test.
+    verification: Unit Test
+
+  - id: RT-TR-05
+    category: Traceability
+    title: Regulatory tools shall generate a machine-readable traceability matrix linking requirements to verification artifacts.
+    verification: Integration Test
+
+  - id: RT-TR-06
+    category: Traceability
+    title: Generated traceability matrices shall be deterministic given identical inputs.
+    verification: Unit Test
+
+
+  # ============================================================
+  # EVIDENCE CAPTURE (RT-EV)
+  # ============================================================
+
+  - id: RT-EV-01
+    category: Evidence
+    title: Regulatory tools shall support structured evidence report generation.
+    verification: Unit Test
+
+  - id: RT-EV-02
+    category: Evidence
+    title: Evidence reports shall support informational, warning, and error classifications.
+    verification: Unit Test
+
+  - id: RT-EV-03
+    category: Evidence
+    title: Evidence reports shall be serializable to machine-readable formats (e.g., JSON).
+    verification: Unit Test
+
+  - id: RT-EV-04
+    category: Evidence
+    title: Evidence reports shall include timestamps and subject identifiers.
+    verification: Unit Test
+
+  - id: RT-EV-05
+    category: Evidence
+    title: Evidence artifacts shall be immutable once written.
+    verification: Integration Test
+
+  - id: RT-EV-06
+    category: Evidence
+    title: Evidence report generation shall not depend on manual formatting steps.
+    verification: Code Review
+
+
+  # ============================================================
+  # DOCUMENT GENERATION (RT-DOC)
+  # ============================================================
+
+  - id: RT-DOC-01
+    category: Documentation
+    title: Regulatory tools shall generate structured regulatory documentation from machine-readable inputs.
+    verification: Integration Test
+
+  - id: RT-DOC-02
+    category: Documentation
+    title: Documentation generation shall be template-driven and automated.
+    verification: Unit Test
+
+  - id: RT-DOC-03
+    category: Documentation
+    title: Generated documentation shall preserve traceability references to requirement IDs.
+    verification: Unit Test
+
+  - id: RT-DOC-04
+    category: Documentation
+    title: Documentation generation shall be reproducible and deterministic.
+    verification: Unit Test
+
+  - id: RT-DOC-05
+    category: Documentation
+    title: Documentation output formats shall include machine-readable and human-readable variants.
+    verification: Integration Test
+
+
+  # ============================================================
+  # ARTIFACT MANAGEMENT (RT-AM)
+  # ============================================================
+
+  - id: RT-AM-01
+    category: Artifact Management
+    title: Regulatory tools shall support structured artifact collection from external toolchains.
+    verification: Integration Test
+
+  - id: RT-AM-02
+    category: Artifact Management
+    title: All collected artifacts shall include provenance metadata.
+    verification: Unit Test
+
+  - id: RT-AM-03
+    category: Artifact Management
+    title: Artifact metadata shall include creation timestamp, source, and version identifiers.
+    verification: Unit Test
+
+  - id: RT-AM-04
+    category: Artifact Management
+    title: Artifact collection workflows shall be scriptable and CI-compatible.
+    verification: Integration Test
+
+  - id: RT-AM-05
+    category: Artifact Management
+    title: Artifact integrity verification mechanisms shall be supported (e.g., hashing).
+    verification: Unit Test
+
+
+  # ============================================================
+  # CONFIGURATION & SCHEMA VALIDATION (RT-CFG)
+  # ============================================================
+
+  - id: RT-CFG-01
+    category: Configuration
+    title: Regulatory tools shall validate configuration files against defined schemas.
+    verification: Unit Test
+
+  - id: RT-CFG-02
+    category: Configuration
+    title: Invalid configuration inputs shall generate structured error reports.
+    verification: Unit Test
+
+  - id: RT-CFG-03
+    category: Configuration
+    title: Configuration schemas shall be version-controlled and traceable.
+    verification: Code Review
+
+  - id: RT-CFG-04
+    category: Configuration
+    title: Regulatory tool behavior shall be fully driven by machine-readable configuration.
+    verification: Unit Test
+
+
+  # ============================================================
+  # AUTOMATION & CI INTEGRATION (RT-AUTO)
+  # ============================================================
+
+  - id: RT-AUTO-01
+    category: Automation
+    title: Regulatory tools shall support execution within continuous integration pipelines.
+    verification: Integration Test
+
+  - id: RT-AUTO-02
+    category: Automation
+    title: Regulatory tools shall fail deterministically when validation checks fail.
+    verification: Unit Test
+
+  - id: RT-AUTO-03
+    category: Automation
+    title: Regulatory workflows shall require no manual intervention once configured.
+    verification: Code Review
+
+  - id: RT-AUTO-04
+    category: Automation
+    title: All generated artifacts shall be reproducible given identical inputs.
+    verification: Unit Test
+
+  - id: RT-AUTO-05
+    category: Automation
+    title: Regulatory tools shall provide machine-readable summaries of validation status.
+    verification: Unit Test
+
+
+  # ============================================================
+  # GOVERNANCE & DESIGN CONTROL SUPPORT (RT-SYS)
+  # ============================================================
+
+  - id: RT-SYS-01
+    category: Governance
+    title: Regulatory tools shall support generation of design control documentation artifacts.
+    verification: Integration Test
+
+  - id: RT-SYS-02
+    category: Governance
+    title: Requirement lifecycle states (e.g., Draft, Approved, Deprecated) shall be supported.
+    verification: Unit Test
+
+  - id: RT-SYS-03
+    category: Governance
+    title: Regulatory tools shall support version tracking of requirement definitions.
+    verification: Unit Test
+
+  - id: RT-SYS-04
+    category: Governance
+    title: Traceability artifacts shall support export suitable for FDA SaMD documentation.
+    verification: Integration Test
+
+  - id: RT-SYS-05
+    category: Governance
+    title: Regulatory tools shall clearly distinguish development evidence from clinical claims.
+    verification: Code Review
