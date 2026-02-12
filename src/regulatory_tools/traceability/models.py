@@ -1,27 +1,18 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import List
 from enum import Enum
 
 
 class VerificationResult(str, Enum):
     PASS = "PASS"
     FAIL = "FAIL"
+    UNTESTED = "UNTESTED"
 
 
 @dataclass
-class TraceRow:
-    """
-    Represents one mapping between:
-        Requirement → Test → Evidence → Result
-    """
-
+class RequirementTraceEntry:
     requirement_id: str
-    test_id: str
-    evidence_file: Optional[str] = None
-    result: Optional[VerificationResult] = None
-
-    def is_verified(self) -> bool:
-        return self.result == VerificationResult.PASS
-
-    def is_failed(self) -> bool:
-        return self.result == VerificationResult.FAIL
+    description: str
+    tests: List[str]
+    evidence_files: List[str]
+    status: VerificationResult

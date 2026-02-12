@@ -141,12 +141,8 @@ class EvidenceReport:
         else:
             raise ValueError(f"Unsupported report format: {path}")
 
-    def auto_save(self, name: str):
-        root = os.getenv("EVIDENCE_OUTPUT_DIR")
-        if not root:
-            return
-
+    def auto_save(self, name: str, root: Path):
         ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         safe_name = name.replace("::", "_").replace("/", "_")
-        path = Path(root) / f"{safe_name}_{ts}.json"
+        path = root / f"{safe_name}_{ts}.json"
         self.save(path)
