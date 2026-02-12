@@ -26,10 +26,9 @@ class EvidenceReport:
         self.requirements.add(requirement_id)
         self.issues.append(EvidenceIssue("ERROR", message, requirement_id, context))
 
-    def info(self, message: str, requirement_id: str, context: str | None = None):
+    def warn(self, message: str, requirement_id: str, context: str | None = None):
         self.requirements.add(requirement_id)
-        self.issues.append(EvidenceIssue("INFO", message, requirement_id, context))
-
+        self.issues.append(EvidenceIssue("WARN", message, requirement_id, context))
 
     def info(self, message: str, requirement_id: str, context: str | None = None):
         self.requirements.add(requirement_id)

@@ -128,4 +128,11 @@ def write_markdown(matrix: List[dict], output: Path):
                 f"| {_sanitize_cell(row['evidence_files'])} "
                 f"| {_sanitize_cell(row['status'])} |\n"
             )
+        total = len(matrix)
+        tested = sum(1 for r in matrix if r["status"] != "UNTESTED")
+        failed = sum(1 for r in matrix if r["status"] == "FAIL")
 
+        f.write("\n\n---\n")
+        f.write(f"Total Requirements: {total}\n\n")
+        f.write(f"Tested: {tested}\n\n")
+        f.write(f"Failures: {failed}\n")
