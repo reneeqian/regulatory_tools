@@ -16,17 +16,29 @@ class EvidenceIssue:
 @dataclass
 class EvidenceReport:
     subject: str
+    test_id: str | None = None
     timestamp: datetime = field(default_factory=datetime.utcnow)
     issues: List[EvidenceIssue] = field(default_factory=list)
+    requirements: set[str] = field(default_factory=set)
+
 
     def error(self, message: str, requirement_id: str, context: str | None = None):
+        self.requirements.add(requirement_id)
         self.issues.append(EvidenceIssue("ERROR", message, requirement_id, context))
 
-    def warn(self, message: str, requirement_id: str, context: str | None = None):
-        self.issues.append(EvidenceIssue("WARNING", message, requirement_id, context))
+    def info(self, message: str, requirement_id: str, context: str | None = None):
+        self.requirements.add(requirement_id)
+        self.issues.append(EvidenceIssue("INFO", message, requirement_id, context))
+
 
     def info(self, message: str, requirement_id: str, context: str | None = None):
+        self.requirements.add(requirement_id)
         self.issues.append(EvidenceIssue("INFO", message, requirement_id, context))
+
+    @property
+    def result(self) -> str:
+        return "FAIL" if self.has_errors else "PASS"
+
     @property
     def has_errors(self) -> bool:
         return any(i.level == "ERROR" for i in self.issues)
@@ -91,9 +103,11 @@ class EvidenceReport:
         
     def to_dict(self) -> dict:
         return {
+            "test_id": self.test_id,
             "subject": self.subject,
             "timestamp": self.timestamp.isoformat(),
-            "has_errors": self.has_errors,
+            "result": self.result,
+            "requirements": sorted(self.requirements),
             "issues": [
                 {
                     "level": i.level,
@@ -107,11 +121,15 @@ class EvidenceReport:
 
     def to_markdown(self) -> str:
         lines = [f"# Evidence Report: {self.subject}", ""]
+        lines.append(f"**Test ID:** {self.test_id}")
+        lines.append(f"**Result:** {self.result}")
+        lines.append("")
+
         for i in self.issues:
             ctx = f" ({i.context})" if i.context else ""
             req = f" [Req: {i.requirement_id}]" if i.requirement_id else ""
-            lines.append(f"- **{i.level}**: {i.message}{ctx}")
-            lines.append(f"- **{i.level}**: {i.message}{ctx}{req}")
+            lines.append(f"- **{i.level}**{req}: {i.message}{ctx}")
+
         return "\n".join(lines)
 
     def save(self, path: Path) -> None:
@@ -128,6 +146,7 @@ class EvidenceReport:
         if not root:
             return
 
-        ts = datetime.now().strftime("%H%M%S_%f")
-        path = Path(root) / f"{name}_{ts}.json"
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        safe_name = name.replace("::", "_").replace("/", "_")
+        path = Path(root) / f"{safe_name}_{ts}.json"
         self.save(path)
