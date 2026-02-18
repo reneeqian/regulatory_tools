@@ -1,10 +1,8 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from regulatory_tools.traceability.generator import (
-    generate_trace_rows,
+    build_trace_matrix,
     write_markdown,
 )
 from regulatory_tools.traceability.validate_traceability import (
@@ -48,18 +46,27 @@ def test_other():
 
 
 def create_dummy_evidence(root: Path):
+    """
+    Creates a single evidence run directory using
+    the CURRENT expected schema:
+        {
+            "test_id": "...",
+            "requirements": ["REQ-1"],
+            "result": "PASS"
+        }
+    """
     run_dir = root / "20260101_120000"
     run_dir.mkdir(parents=True)
 
     record_1 = {
         "test_id": "test_something",
-        "requirement_id": "CAC-REQ-001",
+        "requirements": ["CAC-REQ-001"],
         "result": "PASS",
     }
 
     record_2 = {
         "test_id": "test_other",
-        "requirement_id": "CAC-REQ-002",
+        "requirements": ["CAC-REQ-002"],
         "result": "PASS",
     }
 
@@ -75,12 +82,14 @@ def create_dummy_evidence(root: Path):
 
 def test_full_traceability_workflow(tmp_path: Path):
     """
-    End-to-end test:
-      - requirements.yaml
-      - test files with requirement markers
-      - dummy evidence JSON
-      - trace matrix generation
-      - missing requirement detection
+    End-to-end validation of:
+
+      - requirements.yaml parsing
+      - requirement coverage validation
+      - evidence ingestion
+      - trace matrix construction
+      - markdown generation
+      - UNTESTED detection
     """
 
     # --- Setup paths
@@ -97,34 +106,58 @@ def test_full_traceability_workflow(tmp_path: Path):
     create_dummy_test_file(tests_dir / "test_dummy.py")
     create_dummy_evidence(evidence_root)
 
-    # --- Validate requirement coverage
+    # --- Validate requirement coverage (static test scan)
     missing, untracked = validate_traceability(
         requirements_yaml=requirements_yaml,
         test_dir=tests_dir,
     )
 
-    # CAC-REQ-003 is declared but not tested
+    # CAC-REQ-003 declared but not referenced in tests
     assert "CAC-REQ-003" in missing
 
-    # No extra undeclared requirements referenced
+    # No undeclared requirements referenced
     assert not untracked
 
-    # --- Generate trace rows from evidence
-    rows = generate_trace_rows(evidence_root)
+    # --- Build trace matrix (dynamic evidence-driven)
+    matrix = build_trace_matrix(
+        requirements_yaml=requirements_yaml,
+        evidence_root=evidence_root,
+    )
 
-    assert len(rows) == 2
-    assert {r.requirement_id for r in rows} == {
-        "CAC-REQ-001",
-        "CAC-REQ-002",
-    }
+    assert len(matrix) == 3  # all declared requirements present
 
-    # --- Write markdown
-    write_markdown(rows, output_md)
+    # Convert to dict for easier validation
+    matrix_by_id = {row["requirement_id"]: row for row in matrix}
+
+    # Tested requirements
+    assert matrix_by_id["CAC-REQ-001"]["status"] == "PASS"
+    assert matrix_by_id["CAC-REQ-002"]["status"] == "PASS"
+
+    # Untested requirement
+    assert matrix_by_id["CAC-REQ-003"]["status"] == "UNTESTED"
+
+    # Ensure linked tests recorded
+    assert "test_something" in matrix_by_id["CAC-REQ-001"]["tests"]
+    assert "test_other" in matrix_by_id["CAC-REQ-002"]["tests"]
+
+    # --- Write markdown output
+    write_markdown(matrix, output_md)
 
     assert output_md.exists()
 
     contents = output_md.read_text()
 
+    # Matrix structure
+    assert "Requirements Traceability Matrix" in contents
     assert "CAC-REQ-001" in contents
     assert "CAC-REQ-002" in contents
+    assert "CAC-REQ-003" in contents
+
+    # Status values
     assert "PASS" in contents
+    assert "UNTESTED" in contents
+
+    # Summary section
+    assert "Total Requirements: 3" in contents
+    assert "Tested: 2" in contents
+    assert "Failures: 0" in contents
