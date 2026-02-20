@@ -36,7 +36,7 @@ def load_requirements(requirements_yaml: Path) -> Dict[str, dict]:
 
     for r in data.get("requirements", []):
         requirements[r["id"]] = {
-            "description": r.get("description", ""),
+            "title": r.get("title", ""),
         }
 
     return requirements
@@ -82,7 +82,7 @@ def build_trace_matrix(
         matrix.append(
             {
                 "requirement_id": req_id,
-                "description": meta["description"],
+                "title": meta["title"],
                 "tests": ", ".join(filter(None, tests)),
                 "evidence_files": ", ".join(filter(None, files)),
                 "status": status,
@@ -111,10 +111,11 @@ def write_markdown(matrix: List[dict], output: Path):
     output.parent.mkdir(parents=True, exist_ok=True)
 
     with output.open("w") as f:
+        f.write("<!-- AUTO-GENERATED FILE. DO NOT EDIT MANUALLY. -->\n\n")
         f.write("# Requirements Traceability Matrix\n\n")
 
         f.write(
-            "| Requirement ID | Description | Linked Tests | Evidence Artifacts | Status |\n"
+            "| Requirement ID | Title | Linked Tests | Evidence Artifacts | Status |\n"
         )
         f.write(
             "|----------------|-------------|--------------|--------------------|--------|\n"
@@ -123,7 +124,7 @@ def write_markdown(matrix: List[dict], output: Path):
         for row in matrix:
             f.write(
                 f"| {_sanitize_cell(row['requirement_id'])} "
-                f"| {_sanitize_cell(row['description'])} "
+                f"| {_sanitize_cell(row['title'])} "
                 f"| {_sanitize_cell(row['tests'])} "
                 f"| {_sanitize_cell(row['evidence_files'])} "
                 f"| {_sanitize_cell(row['status'])} |\n"
