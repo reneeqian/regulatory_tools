@@ -3,7 +3,9 @@ import re
 from pathlib import Path
 
 def extract_requirement_marks(test_dir: Path):
-    pattern = re.compile(r'requirement\("([A-Z\-0-9]+)"\)')
+    pattern = re.compile(
+        r'(?:pytest\.mark\.)?requirement\(["\']([A-Z]+-\d{3})["\']\)'
+    )
     found = set()
 
     for file in test_dir.rglob("test_*.py"):
@@ -26,3 +28,33 @@ def validate_traceability(requirements_yaml: Path, test_dir: Path):
     untracked = tested - declared
 
     return missing, untracked
+
+
+REQUIREMENT_PATTERN = re.compile(r'requirement\(["\']([A-Z]+-\d{3})["\']\)')
+
+
+def find_unmarked_tests(test_dir: Path):
+    """
+    Returns list of test file paths that contain test functions
+    but do not reference any requirement IDs.
+    """
+    marker_pattern = re.compile(
+        r'(?:pytest\.mark\.)?requirement\(["\']([A-Z]+-\d{3})["\']\)'
+    )
+    test_function_pattern = re.compile(r'def test_')
+
+    unmarked = []
+
+    for test_file in test_dir.rglob("test_*.py"):
+        content = test_file.read_text()
+
+        # Detect test functions
+        has_test_function = re.search(r"def test_", content)
+
+        # Detect requirement markers
+        has_requirement_marker = REQUIREMENT_PATTERN.search(content)
+
+        if has_test_function and not has_requirement_marker:
+            unmarked.append(str(test_file))
+
+    return sorted(unmarked)
