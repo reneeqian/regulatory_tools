@@ -1,0 +1,93 @@
+metadata:
+  project: <PROJECT_NAME>
+  version: 1.0
+  description: >
+    Deterministic medical imaging AI system designed to demonstrate
+    regulated software engineering principles, reproducibility,
+    and traceable verification.
+
+requirements:
+
+# ==============================
+# System-Level Requirements
+# ==============================
+
+  - id: SYS-001
+    title: Deterministic Execution
+    description: >
+      The system shall produce identical outputs when executed
+      with identical inputs, configuration parameters, and
+      execution environment.
+
+  - id: SYS-002
+    title: Configuration Control
+    description: >
+      All configurable parameters affecting system behavior
+      shall be externally defined and documented.
+
+  - id: SYS-003
+    title: Defined Failure Modes
+    description: >
+      The system shall raise defined exceptions when invalid
+      inputs or states are encountered.
+
+# ==============================
+# Data Ingestion and Validation Requirements
+# ==============================
+
+  - id: DAT-001
+    title: Input Structure Validation
+    description: >
+      The system shall validate required input structure
+      prior to processing.
+
+  - id: DAT-002
+    title: Input Integrity Verification
+    description: >
+      The system shall verify that input data conforms
+      to expected dimensionality and format requirements.
+
+  - id: DAT-003
+    title: Boundary Condition Enforcement
+    description: >
+      The system shall detect and reject access or
+      processing requests outside defined input bounds.
+
+# ==============================
+# System Verification and Validation Requirements
+# ==============================
+
+  - id: VER-001
+    title: Automated Test Coverage
+    description: >
+      The project shall include automated tests verifying
+      defined system behavior.
+
+  - id: VER-002
+    title: Requirement Traceability
+    description: >
+      The system shall support automated generation of a
+      requirement-to-test traceability matrix derived from
+      machine-readable requirement definitions and test annotations.
+
+  - id: VER-003
+    title: Orphan Requirement Detection
+    description: >
+      The system shall detect declared requirements that
+      lack corresponding test coverage.
+
+# ==============================
+# Documentation Requirements
+# ==============================
+
+  - id: DOC-001
+    title: Machine-Readable Requirements Definition
+    description: >
+      The project shall include a machine-readable
+      requirements.yaml file defining system requirements.
+
+  - id: DOC-002
+    title: Basic Project Documentation
+    description: >
+      The project shall include a README file describing
+      system purpose, configuration, and execution steps.
