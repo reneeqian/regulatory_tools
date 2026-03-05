@@ -35,11 +35,21 @@ requirements:
     Traceability matrices generated from identical requirement definitions and test 
     annotations shall be identical across executions.
 
+# ==============================
+# Documentation Requirements
+# ==============================
+
 - id: DOC-001
-  title: Automated Documentation Generation
+  title: Machine-Readable Requirements Definition
   description: >
-    The system shall generate structured documentation artifacts from machine-readable 
-    requirement and evidence inputs.
+    The project shall include a machine-readable
+    requirements.yaml file defining system requirements.
+
+- id: DOC-002
+  title: Basic Project Documentation
+  description: >
+    The project shall include a README file describing
+    system purpose, configuration, and execution steps.
 
 # ==============================
 # Infrastructure, System, and Risk Requirements
