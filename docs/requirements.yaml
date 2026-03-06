@@ -8,72 +8,139 @@ metadata:
 
 requirements:
 
-# ==============================
-# Verification and Documentation Requirements
-# ==============================
-- id: VER-001
-  title: Requirement Definition Validation
-  description: >
-    The system shall validate requirement definition files for unique identifiers, 
-    required fields, and structural correctness.
+  # ==============================
+  # Verification and Documentation Requirements
+  # ==============================
+  - id: VER-001
+    title: Requirement Definition Validation
+    description: >
+      The system shall validate requirement definition files for unique identifiers, 
+      required fields, and structural correctness.
 
-- id: VER-002
-  title: Test Reference Validation
-  description: >
-    The system shall detect and report requirement identifiers referenced in tests 
-    that are not declared in the requirement definition file.
+  - id: VER-002
+    title: Test Reference Validation
+    description: >
+      The system shall detect and report requirement identifiers referenced in tests 
+      that are not declared in the requirement definition file.
 
-- id: VER-003
-  title: Orphan Requirement Detection
-  description: >
-    The system shall detect and report declared requirements that lack corresponding 
-    test references.
+  - id: VER-003
+    title: Orphan Requirement Detection
+    description: >
+      The system shall detect and report declared requirements that lack corresponding 
+      test references.
 
-- id: VER-004
-  title: Deterministic Traceability Output
-  description: >
-    Traceability matrices generated from identical requirement definitions and test 
-    annotations shall be identical across executions.
+  - id: VER-004
+    title: Deterministic Traceability Output
+    description: >
+      Traceability matrices generated from identical requirement definitions and test 
+      annotations shall be identical across executions.
+  
+  - id: VER-005
+    title: Traceability Matrix Generation
+    description: >
+      The system shall generate a traceability matrix mapping
+      requirement identifiers to verification artifacts derived
+      from test annotations.
 
-# ==============================
-# Documentation Requirements
-# ==============================
+  - id: VER-006
+    title: Requirement Reference Validation
+    description: >
+      The system shall validate that requirement identifiers
+      referenced in verification artifacts conform to the
+      defined requirement identifier format.
 
-- id: DOC-001
-  title: Machine-Readable Requirements Definition
-  description: >
-    The project shall include a machine-readable
-    requirements.yaml file defining system requirements.
+  - id: VER-007
+    title: Deterministic Requirement Parsing
+    description: >
+      Requirement definition files shall be parsed deterministically
+      such that identical inputs produce identical internal
+      requirement representations.
 
-- id: DOC-002
-  title: Basic Project Documentation
-  description: >
-    The project shall include a README file describing
-    system purpose, configuration, and execution steps.
+  # ==============================
+  # Documentation Requirements
+  # ==============================
 
-# ==============================
-# Infrastructure, System, and Risk Requirements
-# ==============================
+  - id: DOC-001
+    title: Machine-Readable Requirements Definition
+    description: >
+      The project shall include a machine-readable
+      requirements.yaml file defining system requirements.
 
-- id: INF-001
-  title: Artifact Collection Support
-  description: >
-    The system shall collect and organize verification artifacts with associated 
-    provenance metadata including timestamp and source identifier.
+  - id: DOC-002
+    title: Basic Project Documentation
+    description: >
+      The project shall include a README file describing
+      system purpose, configuration, and execution steps.
+  
+  - id: DOC-003
+    title: Traceability Documentation Generation
+    description: >
+      The system shall generate documentation artifacts describing
+      traceability relationships between requirements and
+      verification artifacts.
 
-- id: INF-002
-  title: Configuration Schema Validation
-  description: >
-    Configuration inputs shall be validated against defined schemas prior to execution.
+  - id: DOC-004
+    title: Requirements Summary Generation
+    description: >
+      The system shall support generation of summary documentation
+      describing declared requirements and their associated metadata.
 
-- id: SYS-001
-  title: CI-Compatible Execution
-  description: >
-    All validation and documentation workflows shall execute deterministically in 
-    non-interactive continuous integration environments.
+  # ==============================
+  # Infrastructure Requirements
+  # ==============================
 
-- id: RSK-001
-  title: Evidence Classification Support
-  description: >
-    Evidence artifacts shall support structured severity levels and classification 
-    metadata suitable for risk-based reporting.
+  - id: INF-001
+    title: Artifact Collection Support
+    description: >
+      The system shall collect and organize verification artifacts with associated 
+      provenance metadata including timestamp and source identifier.
+
+  - id: INF-002
+    title: Configuration Schema Validation
+    description: >
+      Configuration inputs shall be validated against defined schemas prior to execution.
+  
+  - id: INF-003
+    title: Verification Artifact Persistence
+    description: >
+      Verification artifacts shall be persisted in a structured
+      machine-readable format suitable for automated processing.
+
+  - id: INF-004
+    title: Evidence Artifact Association
+    description: >
+      Verification artifacts shall include references to the
+      requirement identifiers they verify.
+  
+  # ==============================
+  # System Requirements
+  # ==============================
+
+  - id: SYS-001
+    title: CI-Compatible Execution
+    description: >
+      All validation and documentation workflows shall execute deterministically in 
+      non-interactive continuous integration environments.
+  
+  - id: SYS-002
+    title: Deterministic Artifact Generation
+    description: >
+      Documentation and traceability artifacts generated from
+      identical inputs shall be identical across executions.
+
+  # ==============================
+  # Risk Requirements
+  # ==============================
+
+  - id: RSK-001
+    title: Evidence Classification Support
+    description: >
+      Evidence artifacts shall support structured severity levels and classification 
+      metadata suitable for risk-based reporting.
+
+  - id: RSK-002
+    title: Risk Metadata Preservation
+    description: >
+      Evidence artifacts containing risk classification metadata
+      shall preserve that metadata when aggregated into reporting
+      outputs.
