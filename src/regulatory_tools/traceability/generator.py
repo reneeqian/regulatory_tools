@@ -107,12 +107,53 @@ def _sanitize_cell(text: str) -> str:
     return text
 
 
-def write_markdown(matrix: List[dict], output: Path):
+def write_markdown(
+        matrix: List[dict],
+        output: Path,
+        req_coverage_summary=None,
+        code_coverage_summary=None,
+    ):
+
     output.parent.mkdir(parents=True, exist_ok=True)
 
     with output.open("w") as f:
+
         f.write("<!-- AUTO-GENERATED FILE. DO NOT EDIT MANUALLY. -->\n\n")
         f.write("# Requirements Traceability Matrix\n\n")
+
+        # ---------------------------------------------------------
+        # Requirement Coverage Summary
+        # ---------------------------------------------------------
+
+        if req_coverage_summary:
+
+            f.write("## Requirement Coverage\n\n")
+
+            f.write(
+                f"**Coverage:** {req_coverage_summary['coverage']:.1f}% "
+                f"({req_coverage_summary['tested']} / {req_coverage_summary['total']} requirements tested)\n\n"
+            )
+        
+        # ---------------------------------------------------------
+        # Code Coverage Summary
+        # ---------------------------------------------------------
+
+        if code_coverage_summary:
+
+            f.write("## Code Coverage\n\n")
+
+            f.write(
+                f"**Line Coverage:** {code_coverage_summary['coverage']:.1f}%\n\n"
+            )
+
+            f.write(
+                "Detailed uncovered lines saved in "
+                "`artifacts/coverage/uncovered_lines.txt`\n\n"
+            )
+
+        # ---------------------------------------------------------
+        # Traceability Table
+        # ---------------------------------------------------------
 
         f.write(
             "| Requirement ID | Title | Linked Tests | Evidence Artifacts | Status |\n"
@@ -122,6 +163,7 @@ def write_markdown(matrix: List[dict], output: Path):
         )
 
         for row in matrix:
+
             f.write(
                 f"| {_sanitize_cell(row['requirement_id'])} "
                 f"| {_sanitize_cell(row['title'])} "
@@ -129,6 +171,22 @@ def write_markdown(matrix: List[dict], output: Path):
                 f"| {_sanitize_cell(row['evidence_files'])} "
                 f"| {_sanitize_cell(row['status'])} |\n"
             )
+
+
+        f.write("\n\n---\n")
+        if req_coverage_summary["untested"]:
+
+                f.write("### Untested Requirements\n\n")
+
+                for req in sorted(req_coverage_summary["untested"]):
+                    f.write(f"- {req}\n")
+
+                f.write("\n")
+        
+        # ---------------------------------------------------------
+        # Summary Stats
+        # ---------------------------------------------------------
+
         total = len(matrix)
         tested = sum(1 for r in matrix if r["status"] != "UNTESTED")
         failed = sum(1 for r in matrix if r["status"] == "FAIL")
