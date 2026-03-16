@@ -5,30 +5,48 @@ machine-derived regulatory artifacts for SaMD projects.
 
 ---
 
-## 1. Purpose
+## Purpose
 
-This repository provides tools for:
+This repository provides tooling for:
 
-- Requirement parsing
-- ID validation
-- Traceability matrix generation
-- Evidence aggregation
-- CI-integrated compliance checks
+- requirement validation
+- test linkage
+- evidence aggregation
+- traceability matrix generation
+- code coverage reporting
 
 The objective is deterministic, machine-generated regulatory documentation.
 
 ---
 
-## 2. Design Philosophy
+## Example Usage
 
-Regulatory documentation should be:
+Projects typically run:
 
-- Derived from structured data
-- Automatically verifiable
-- Deterministic
-- CI-enforced
+```python
+from regulatory_tools.testing import run_tests_and_trace
 
-Manual document assembly should be minimized.
+run_tests_and_trace(PROJECT_ROOT)
+```
+
+Which will:
+
+1. run pytest
+2. compute coverage
+3. validate traceability
+4. generate a traceability matrix
+
+---
+
+## Structure
+
+```
+regulatory_tools/
+├── src/regulatory_tools/
+│ ├── testing/
+│ ├── traceability/
+│ └── evidence/
+```
 
 ---
 
@@ -45,8 +63,6 @@ regulatory_tools/
 
 
 ---
-
-## 4. Regulatory Position
 
 Demonstration infrastructure only.
 Not an FDA submission package.
