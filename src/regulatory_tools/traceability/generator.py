@@ -142,10 +142,13 @@ def write_markdown(
 
             f.write("## Code Coverage\n\n")
 
-            f.write(
-                f"**Line Coverage:** {code_coverage_summary['coverage']:.1f}%\n\n"
-            )
+            coverage = code_coverage_summary.get("coverage")
 
+            if coverage is None:
+                f.write("**Line Coverage:** N/A\n\n")
+            else:
+                f.write(f"**Line Coverage:** {coverage:.1f}%\n\n")
+                
             f.write(
                 "Detailed uncovered lines saved in "
                 "`artifacts/coverage/uncovered_lines.txt`\n\n"
@@ -174,14 +177,11 @@ def write_markdown(
 
 
         f.write("\n\n---\n")
-        if req_coverage_summary["untested"]:
 
-                f.write("### Untested Requirements\n\n")
-
-                for req in sorted(req_coverage_summary["untested"]):
-                    f.write(f"- {req}\n")
-
-                f.write("\n")
+        if req_coverage_summary and req_coverage_summary.get("untested"):
+            f.write("\n## Untested Requirements\n\n")
+            for req in req_coverage_summary["untested"]:
+                f.write(f"- {req}\n")
         
         # ---------------------------------------------------------
         # Summary Stats

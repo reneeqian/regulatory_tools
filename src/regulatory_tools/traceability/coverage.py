@@ -65,13 +65,16 @@ def compute_code_coverage(project_root):
 
     return coverage_percent, uncovered
 
-def save_uncovered_lines(project_root, uncovered_lines):
+def save_uncovered_lines(project_root, uncovered):
 
-    output = project_root / "artifacts" / "coverage" / "uncovered_lines.txt"
+    coverage_dir = project_root / "artifacts" / "coverage"
+    coverage_dir.mkdir(parents=True, exist_ok=True)
+
+    output = coverage_dir / "uncovered_lines.txt"
 
     with output.open("w") as f:
 
-        for file, lines in sorted(uncovered_lines.items()):
+        for file, lines in sorted(uncovered.items()):
 
             f.write(f"{file}\n")
 

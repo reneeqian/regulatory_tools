@@ -17,3 +17,13 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+    "requirement(id): link test to requirement"
+]
+
+[tool.coverage.run]
+omit = [
+    "*/artifacts/*",
+]

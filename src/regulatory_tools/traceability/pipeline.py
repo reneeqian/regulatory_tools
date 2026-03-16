@@ -8,6 +8,10 @@ from .test_scanner import collect_requirement_markers
 
 
 def generate_traceability_matrix(project_root):
+    
+    (project_root / "artifacts").mkdir(exist_ok=True)
+    (project_root / "artifacts" / "evidence_runs").mkdir(exist_ok=True)
+    (project_root / "artifacts" / "coverage").mkdir(exist_ok=True)
 
     test_dir = project_root / "tests"
     requirements_yaml = project_root / "docs" / "requirements.yaml"

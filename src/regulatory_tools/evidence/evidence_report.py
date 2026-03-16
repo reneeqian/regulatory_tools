@@ -145,3 +145,36 @@ class EvidenceReport:
         safe_name = name.replace("::", "_").replace("/", "_")
         path = root / f"{safe_name}_{ts}.json"
         self.save(path)
+        
+def generate_evidence_summary(evidence_run_dir: Path) -> dict:
+    """
+    Aggregates evidence JSON files from a single evidence run directory.
+
+    Returns summary statistics used by reporting and tests.
+    """
+
+    total = 0
+    passed = 0
+    failed = 0
+
+    for record_file in evidence_run_dir.glob("*.json"):
+
+        try:
+            record = json.loads(record_file.read_text())
+        except Exception:
+            continue
+
+        result = record.get("result")
+
+        total += 1
+
+        if result == "PASS":
+            passed += 1
+        elif result == "FAIL":
+            failed += 1
+
+    return {
+        "total_tests": total,
+        "passed": passed,
+        "failed": failed,
+    }

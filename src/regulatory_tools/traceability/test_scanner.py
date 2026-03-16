@@ -2,7 +2,7 @@ from pathlib import Path
 import ast
 
 
-def collect_requirement_markers(test_root: Path, project_root: Path):
+def collect_requirement_markers(test_root: Path, project_root: Path = None):
     """
     Scan pytest files and collect requirement markers.
 
@@ -10,6 +10,9 @@ def collect_requirement_markers(test_root: Path, project_root: Path):
         dict[str, list[str]]
         { requirement_id: [test_node_ids...] }
     """
+    
+    if project_root is None:
+        project_root = test_root
 
     requirement_map = {}
 

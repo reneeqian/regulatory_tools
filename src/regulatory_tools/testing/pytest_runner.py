@@ -22,6 +22,11 @@ def run_pytest_with_coverage(project_root: Path):
     coverage_dir.mkdir(parents=True, exist_ok=True)
     
     source = detect_source_package(project_root)
+    
+    # Skip pytest if no tests exist
+    if not any(test_dir.rglob("test_*.py")):
+        print("No tests detected — skipping pytest execution.")
+        return
 
     result = subprocess.run(
         [
