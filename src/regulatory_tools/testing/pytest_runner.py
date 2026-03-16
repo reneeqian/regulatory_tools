@@ -2,17 +2,32 @@ import subprocess
 from pathlib import Path
 import sys
 
+def detect_source_package(project_root):
 
-def run_pytest_with_coverage(project_root: Path, source_dir: Path):
+    src = project_root / "src"
+
+    packages = [
+        p for p in src.iterdir()
+        if p.is_dir() and (p / "__init__.py").exists()
+    ]
+
+    if not packages:
+        raise RuntimeError("No package found in src/")
+
+    return packages[0]
+
+def run_pytest_with_coverage(project_root: Path):
     test_dir = project_root / "tests"
     coverage_dir = project_root / "artifacts" / "coverage"
     coverage_dir.mkdir(parents=True, exist_ok=True)
+    
+    source = detect_source_package(project_root)
 
     result = subprocess.run(
         [
             "pytest",
             str(test_dir),
-            f"--cov={source_dir}",
+            f"--cov={source}",
             "--cov-report=term",
             f"--cov-report=html:{coverage_dir / 'html'}",
             f"--cov-report=xml:{coverage_dir / 'coverage.xml'}",

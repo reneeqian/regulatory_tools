@@ -46,21 +46,10 @@ regulatory_tools/
 │ ├── testing/
 │ ├── traceability/
 │ └── evidence/
-```
-
----
-
-## 3. Repository Structure
-
-```
-regulatory_tools/
-├── requirements/
-│ └── requirements.yaml
 ├── tests/
 ├── environment.yml
 └── README.md
 ```
-
 
 ---
 

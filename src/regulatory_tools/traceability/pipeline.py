@@ -7,29 +7,23 @@ from .coverage import compute_code_coverage, save_uncovered_lines
 from .test_scanner import collect_requirement_markers
 
 
-def generate_traceability_matrix(project_root: Path):
+def generate_traceability_matrix(project_root):
 
-    TEST_DIR = project_root / "tests"
-    REQUIREMENTS_YAML = project_root / "docs" / "requirements.yaml"
-    EVIDENCE_ROOT = project_root / "artifacts" / "evidence_runs"
-    OUTPUT_MATRIX = project_root / "docs" / "traceability_matrix.md"
+    test_dir = project_root / "tests"
+    requirements_yaml = project_root / "docs" / "requirements.yaml"
+    evidence_root = project_root / "artifacts" / "evidence_runs"
+    output = project_root / "docs" / "traceability_matrix.md"
 
-    missing, untracked = validate_traceability(
-        requirements_yaml=REQUIREMENTS_YAML,
-        test_dir=TEST_DIR,
-    )
-
-    unmarked_tests = find_unmarked_tests(TEST_DIR)
-    marker_links = collect_requirement_markers(TEST_DIR, project_root)
+    marker_links = collect_requirement_markers(test_dir, project_root)
 
     matrix = build_trace_matrix(
-        requirements_yaml=REQUIREMENTS_YAML,
-        evidence_root=EVIDENCE_ROOT,
+        requirements_yaml=requirements_yaml,
+        evidence_root=evidence_root,
     )
 
     apply_test_markers(matrix, marker_links)
 
-    coverage, tested_count, total_count, untested = compute_requirement_coverage(matrix)
+    coverage, tested, total, untested = compute_requirement_coverage(matrix)
 
     code_coverage, uncovered = compute_code_coverage(project_root)
 
@@ -37,14 +31,14 @@ def generate_traceability_matrix(project_root: Path):
 
     write_markdown(
         matrix,
-        OUTPUT_MATRIX,
+        output,
         req_coverage_summary={
             "coverage": coverage,
-            "tested": tested_count,
-            "total": total_count,
+            "tested": tested,
+            "total": total,
             "untested": untested,
         },
         code_coverage_summary={
             "coverage": code_coverage
-        }
+        },
     )
