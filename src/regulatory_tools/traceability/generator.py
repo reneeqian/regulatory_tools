@@ -195,3 +195,17 @@ def write_markdown(
         f.write(f"Total Requirements: {total}\n\n")
         f.write(f"Tested: {tested}\n\n")
         f.write(f"Failures: {failed}\n")
+
+def apply_test_markers(matrix, marker_links):
+
+    for row in matrix:
+
+        req_id = row["requirement_id"]
+
+        existing = set(
+            t.strip() for t in row.get("tests", "").split(",") if t.strip()
+        )
+
+        markers = set(marker_links.get(req_id, []))
+
+        row["tests"] = ", ".join(sorted(existing | markers))

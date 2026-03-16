@@ -1,8 +1,4 @@
-import subprocess
 from pathlib import Path
-import sys
-import os
-import ast
 import xml.etree.ElementTree as ET
 
 
@@ -41,7 +37,7 @@ def compute_code_coverage(project_root):
     collect uncovered lines per file.
     """
 
-    coverage_xml = project_root / "artifacts" / "coverage" / "coverage.xml"
+    coverage_xml = coverage_xml_path(project_root)
 
     if not coverage_xml.exists():
         return None, {}
@@ -85,3 +81,6 @@ def save_uncovered_lines(project_root, uncovered_lines):
             f.write("\n")
 
     print(f"[Coverage] Uncovered lines saved to {output}")
+
+def coverage_xml_path(project_root: Path):
+    return project_root / "artifacts" / "coverage" / "coverage.xml"

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .generator import build_trace_matrix, write_markdown
+from .generator import build_trace_matrix, write_markdown, apply_test_markers
 from .validate_traceability import validate_traceability, find_unmarked_tests
 from .coverage import compute_requirement_coverage
 from .coverage import compute_code_coverage, save_uncovered_lines
@@ -27,20 +27,7 @@ def generate_traceability_matrix(project_root: Path):
         evidence_root=EVIDENCE_ROOT,
     )
 
-    # merge test markers
-    for row in matrix:
-
-        req_id = row["requirement_id"]
-
-        existing_tests = set(
-            t.strip() for t in row.get("tests", "").split(",") if t.strip()
-        )
-
-        marker_tests = set(marker_links.get(req_id, []))
-
-        merged = sorted(existing_tests.union(marker_tests))
-
-        row["tests"] = ", ".join(merged)
+    apply_test_markers(matrix, marker_links)
 
     coverage, tested_count, total_count, untested = compute_requirement_coverage(matrix)
 
