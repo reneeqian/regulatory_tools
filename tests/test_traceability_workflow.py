@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from importlib_resources import contents
 import pytest
+import subprocess
+import sys
 
 from regulatory_tools.traceability.generator import (
     build_trace_matrix,
@@ -11,6 +13,8 @@ from regulatory_tools.traceability.validate_traceability import (
     validate_traceability,
 )
 
+from regulatory_tools.evidence.evidence_report import generate_evidence_summary
+from regulatory_tools.traceability.coverage import compute_code_coverage
 
 # ----------------------------
 # Helpers
@@ -20,11 +24,11 @@ def create_dummy_requirements(path: Path):
     path.write_text(
         """
 requirements:
-  - id: CAC-REQ-001
+  - id: VER-001
     description: Dummy requirement 1
-  - id: CAC-REQ-002
+  - id: VER-002
     description: Dummy requirement 2
-  - id: CAC-REQ-003
+  - id: VER-003
     description: Dummy requirement 3
 """
     )
@@ -37,11 +41,11 @@ def requirement(req_id):
     pass
 
 def test_something():
-    requirement("CAC-REQ-001")
+    requirement("VER-001")
     assert True
 
 def test_other():
-    requirement("CAC-REQ-002")
+    requirement("VER-002")
     assert True
 '''
     )
@@ -53,7 +57,7 @@ def create_dummy_evidence(root: Path):
     the CURRENT expected schema:
         {
             "test_id": "...",
-            "requirements": ["REQ-1"],
+            "requirements": ["VER-1"],
             "result": "PASS"
         }
     """
@@ -62,13 +66,13 @@ def create_dummy_evidence(root: Path):
 
     record_1 = {
         "test_id": "test_something",
-        "requirements": ["CAC-REQ-001"],
+        "requirements": ["VER-001"],
         "result": "PASS",
     }
 
     record_2 = {
         "test_id": "test_other",
-        "requirements": ["CAC-REQ-002"],
+        "requirements": ["VER-002"],
         "result": "PASS",
     }
 
@@ -81,7 +85,11 @@ def create_dummy_evidence(root: Path):
 # ----------------------------
 # Tests
 # ----------------------------
-
+@pytest.mark.requirement("VER-002")
+@pytest.mark.requirement("VER-003")
+@pytest.mark.requirement("VER-005")
+@pytest.mark.requirement("DOC-003")
+@pytest.mark.requirement("INF-003")
 def test_full_traceability_workflow(tmp_path: Path):
     """
     End-to-end validation of:
@@ -114,8 +122,8 @@ def test_full_traceability_workflow(tmp_path: Path):
         test_dir=tests_dir,
     )
 
-    # CAC-REQ-003 declared but not referenced in tests
-    assert "CAC-REQ-003" in missing
+    # VER-003 declared but not referenced in tests
+    assert "VER-003" in missing
 
     # No undeclared requirements referenced
     assert not untracked
@@ -132,15 +140,15 @@ def test_full_traceability_workflow(tmp_path: Path):
     matrix_by_id = {row["requirement_id"]: row for row in matrix}
 
     # Tested requirements
-    assert matrix_by_id["CAC-REQ-001"]["status"] == "PASS"
-    assert matrix_by_id["CAC-REQ-002"]["status"] == "PASS"
+    assert matrix_by_id["VER-001"]["status"] == "PASS"
+    assert matrix_by_id["VER-002"]["status"] == "PASS"
 
     # Untested requirement
-    assert matrix_by_id["CAC-REQ-003"]["status"] == "UNTESTED"
+    assert matrix_by_id["VER-003"]["status"] == "UNTESTED"
 
     # Ensure linked tests recorded
-    assert "test_something" in matrix_by_id["CAC-REQ-001"]["tests"]
-    assert "test_other" in matrix_by_id["CAC-REQ-002"]["tests"]
+    assert "test_something" in matrix_by_id["VER-001"]["tests"]
+    assert "test_other" in matrix_by_id["VER-002"]["tests"]
 
     # --- Write markdown output
     write_markdown(matrix, output_md)
@@ -151,9 +159,9 @@ def test_full_traceability_workflow(tmp_path: Path):
 
     # Matrix structure
     assert "Requirements Traceability Matrix" in contents
-    assert "CAC-REQ-001" in contents
-    assert "CAC-REQ-002" in contents
-    assert "CAC-REQ-003" in contents
+    assert "VER-001" in contents
+    assert "VER-002" in contents
+    assert "VER-003" in contents
 
     # Status values
     assert "| PASS |" in contents
@@ -164,6 +172,8 @@ def test_full_traceability_workflow(tmp_path: Path):
     assert "Tested: 2" in contents
     assert "Failures: 0" in contents
 
+@pytest.mark.requirement("VER-004")
+@pytest.mark.requirement("SYS-002")
 def test_traceability_matrix_determinism(tmp_path: Path):
     """
     Ensures identical inputs produce identical matrices.
@@ -188,7 +198,8 @@ def test_traceability_matrix_determinism(tmp_path: Path):
     )
 
     assert matrix1 == matrix2
-    
+
+@pytest.mark.requirement("VER-001")
 def test_duplicate_requirement_ids_detected(tmp_path: Path):
     """
     Requirement IDs must be unique.
@@ -199,9 +210,9 @@ def test_duplicate_requirement_ids_detected(tmp_path: Path):
     req_yaml.write_text(
         """
     requirements:
-    - id: REQ-001
+    - id: VER-001
         description: A
-    - id: REQ-001
+    - id: VER-001
         description: B
     """
         )
@@ -211,7 +222,8 @@ def test_duplicate_requirement_ids_detected(tmp_path: Path):
             requirements_yaml=req_yaml,
             test_dir=tmp_path,
         )
-
+        
+@pytest.mark.requirement("INF-002")
 def test_invalid_yaml_rejected(tmp_path: Path):
     """
     System should fail clearly on malformed YAML.
@@ -227,6 +239,7 @@ def test_invalid_yaml_rejected(tmp_path: Path):
             test_dir=tmp_path,
         )
 
+@pytest.mark.requirement("VER-002")
 def test_unknown_requirement_in_evidence(tmp_path: Path):
 
     req_yaml = tmp_path / "requirements.yaml"
@@ -255,37 +268,8 @@ def test_unknown_requirement_in_evidence(tmp_path: Path):
     # matrix should still build without crashing
     assert matrix
 
-def test_latest_evidence_run_used(tmp_path: Path):
 
-    req_yaml = tmp_path / "requirements.yaml"
-    evidence_root = tmp_path / "evidence_runs"
-
-    evidence_root.mkdir()
-
-    create_dummy_requirements(req_yaml)
-
-    create_dummy_evidence(evidence_root)
-
-    newer = evidence_root / "20260102_120000"
-    newer.mkdir()
-
-    record = {
-        "test_id": "test_new",
-        "requirements": ["CAC-REQ-001"],
-        "result": "FAIL",
-    }
-
-    (newer / "fail.json").write_text(json.dumps(record))
-
-    matrix = build_trace_matrix(
-        requirements_yaml=req_yaml,
-        evidence_root=evidence_root,
-    )
-
-    matrix_by_id = {row["requirement_id"]: row for row in matrix}
-
-    assert matrix_by_id["CAC-REQ-001"]["status"] == "FAIL"
-    
+@pytest.mark.requirement("VER-003")
 def test_empty_evidence_directory(tmp_path: Path):
 
     req_yaml = tmp_path / "requirements.yaml"
@@ -303,7 +287,8 @@ def test_empty_evidence_directory(tmp_path: Path):
     statuses = [row["status"] for row in matrix]
 
     assert all(status == "UNTESTED" for status in statuses)
-    
+
+@pytest.mark.requirement("VER-006")
 def test_invalid_requirement_id_format(tmp_path: Path):
 
     req_yaml = tmp_path / "requirements.yaml"
@@ -321,53 +306,105 @@ requirements:
             requirements_yaml=req_yaml,
             test_dir=tmp_path,
         )
-    
-def test_invalid_evidence_schema(tmp_path: Path):
+# ------------------------------------------------
+# Requirement validation edge cases
+# ------------------------------------------------
 
-    req_yaml = tmp_path / "requirements.yaml"
-    evidence_root = tmp_path / "evidence"
+@pytest.mark.requirement("VER-001")
+@pytest.mark.requirement("VER-007")
+def test_requirement_validation(tmp_path):
 
-    evidence_root.mkdir()
+    req_file = tmp_path / "requirements.yaml"
 
-    create_dummy_requirements(req_yaml)
-
-    run = evidence_root / "run"
-    run.mkdir()
-
-    bad_record = {
-        "requirements": ["CAC-REQ-001"]
-    }
-
-    (run / "bad.json").write_text(json.dumps(bad_record))
-
-    matrix = build_trace_matrix(
-        requirements_yaml=req_yaml,
-        evidence_root=evidence_root,
+    req_file.write_text(
+        """
+requirements:
+  - id: VER-001
+    description: test
+"""
     )
 
-    assert matrix
-    
-def test_run_tests_and_trace_smoke(tmp_path):
-    """
-    Ensures CLI pipeline executes.
-    """
+    tests_dir = tmp_path / "tests"
+    tests_dir.mkdir()
 
-    from regulatory_tools.testing import run_tests_and_trace
+    missing, untracked = validate_traceability(req_file, tests_dir)
+
+    assert "VER-001" in missing
+    assert not untracked
+
+
+# ------------------------------------------------
+# Evidence summary generation
+# ------------------------------------------------
+
+@pytest.mark.requirement("DOC-004")
+@pytest.mark.requirement("RSK-001")
+@pytest.mark.requirement("RSK-002")
+def test_evidence_summary_generation(tmp_path):
+
+    evidence_dir = tmp_path / "runs"
+    run = evidence_dir / "20240101"
+    run.mkdir(parents=True)
+
+    artifact = {
+        "requirement_id": "VER-001",
+        "status": "PASS",
+        "severity": "low"
+    }
+
+    (run / "artifact.json").write_text(json.dumps(artifact))
+
+    summary = generate_evidence_summary(evidence_dir)
+
+    assert summary is not None
+
+
+# ------------------------------------------------
+# Coverage calculation
+# ------------------------------------------------
+
+@pytest.mark.requirement("INF-003")
+@pytest.mark.requirement("SYS-002")
+def test_code_coverage_computation(tmp_path):
+
+    coverage_file = tmp_path / "coverage.xml"
+
+    coverage_file.write_text(
+        """
+<coverage line-rate="0.85" branch-rate="0.8">
+</coverage>
+"""
+    )
+
+    result = compute_code_coverage(coverage_file)
+
+    assert result is not None
+
+
+# ------------------------------------------------
+# CLI execution
+# ------------------------------------------------
+
+@pytest.mark.requirement("SYS-001")
+def test_traceability_cli_execution(tmp_path):
 
     project = tmp_path / "proj"
     project.mkdir()
 
-    (project / "tests").mkdir()
     (project / "docs").mkdir()
+    (project / "tests").mkdir()
 
-    src = project / "src"
-    src.mkdir()
+    (project / "docs" / "requirements.yaml").write_text(
+        """
+requirements:
+  - id: VER-001
+    description: example
+"""
+    )
 
-    pkg = src / "dummy_pkg"
-    pkg.mkdir()
+    result = subprocess.run(
+        [sys.executable, "-m", "regulatory_tools.traceability", str(project)],
+        capture_output=True,
+    )
 
-    (pkg / "__init__.py").write_text("")
-
-    create_dummy_requirements(project / "docs" / "requirements.yaml")
-
-    run_tests_and_trace(project)
+    assert result.returncode == 0

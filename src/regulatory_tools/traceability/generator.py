@@ -10,11 +10,11 @@ def _extract_requirement_ids(record) -> List[str]:
     Extract requirement IDs from an evidence record.
 
     Supports new schema:
-        "requirements": ["REQ-1", "REQ-2"]
+        "requirements": ["VER-1", "VER-2"]
 
     Backward compatible with:
         "requirement_ids": [...]
-        "requirement_id": "REQ-1"
+        "requirement_id": "VER-1"
     """
     if "requirements" in record and isinstance(record["requirements"], list):
         return record["requirements"]

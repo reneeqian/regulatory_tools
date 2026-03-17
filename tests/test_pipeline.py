@@ -1,0 +1,123 @@
+from pathlib import Path
+from regulatory_tools.traceability.pipeline import generate_traceability_matrix
+from regulatory_tools.traceability.test_scanner import collect_requirement_markers
+
+import pytest
+
+# ----------------------------
+# Helpers
+# ----------------------------
+
+def create_dummy_requirements(path: Path):
+    path.write_text(
+        """
+requirements:
+  - id: VER-001
+    description: Dummy requirement 1
+  - id: VER-002
+    description: Dummy requirement 2
+  - id: VER-003
+    description: Dummy requirement 3
+"""
+    )
+
+# ----------------------------
+# Tests
+# ----------------------------
+
+@pytest.mark.requirement("VER-005")
+@pytest.mark.requirement("DOC-003")
+@pytest.mark.requirement("SYS-002")
+def test_pipeline_execution(tmp_path):
+
+    project = tmp_path / "proj"
+
+    (project / "docs").mkdir(parents=True)
+    (project / "tests").mkdir()
+    (project / "artifacts" / "evidence_runs").mkdir(parents=True)
+
+    (project / "docs" / "requirements.yaml").write_text(
+        """
+requirements:
+  - id: VER-001
+    description: example
+"""
+    )
+
+    generate_traceability_matrix(project)
+
+    output = project / "docs" / "traceability_matrix.md"
+
+    assert output.exists()
+    
+@pytest.mark.requirement("SYS-001")
+@pytest.mark.requirement("SYS-002")
+def test_traceability_cli_execution(tmp_path):
+
+    project = tmp_path / "proj"
+
+    (project / "docs").mkdir(parents=True)
+    (project / "tests").mkdir()
+    (project / "artifacts" / "evidence_runs").mkdir(parents=True)
+
+    (project / "docs" / "requirements.yaml").write_text(
+        """
+requirements:
+  - id: VER-001
+    description: example
+"""
+    )
+
+    generate_traceability_matrix(project)
+
+    assert (project / "docs" / "traceability_matrix.md").exists()
+    
+
+@pytest.mark.requirement("INF-004")
+def test_scan_tests_detects_tests(tmp_path):
+
+    test_dir = tmp_path / "tests"
+    test_dir.mkdir()
+
+    f = test_dir / "test_example.py"
+    f.write_text(
+    '''
+import pytest
+
+@pytest.mark.requirement("VER-001")
+def test_a():
+    assert True
+'''
+    )
+
+    tests = collect_requirement_markers(test_dir)
+
+    assert "VER-001" in tests
+    assert len(tests["VER-001"]) == 1
+    
+    
+@pytest.mark.requirement("SYS-001")
+def test_run_tests_and_trace_smoke(tmp_path):
+    """
+    Ensures CLI pipeline executes.
+    """
+
+    from regulatory_tools.testing import run_tests_and_trace
+
+    project = tmp_path / "proj"
+    project.mkdir()
+
+    (project / "tests").mkdir()
+    (project / "docs").mkdir()
+
+    src = project / "src"
+    src.mkdir()
+
+    pkg = src / "dummy_pkg"
+    pkg.mkdir()
+
+    (pkg / "__init__.py").write_text("")
+
+    create_dummy_requirements(project / "docs" / "requirements.yaml")
+
+    run_tests_and_trace(project)

@@ -1,20 +1,17 @@
+import sys
 from pathlib import Path
-from regulatory_tools.traceability.generator import generate_trace_rows, write_markdown
+from .pipeline import generate_traceability_matrix
+
 
 def main():
-    print("🔍 Generating traceability matrix...")
 
-    rows = generate_trace_rows(
-        evidence_root=Path("artifacts/evidence_runs")
-    )
-    print(f"Found {len(rows)} trace rows")
+    if len(sys.argv) != 2:
+        print("Usage: python -m regulatory_tools.traceability <project_root>")
+        sys.exit(1)
 
-    output_path = Path("docs/traceability.md")
-    write_markdown(
-        rows,
-        output=output_path
-    )
-    print(f"✅ Traceability matrix written to {output_path.resolve()}")
+    project_root = Path(sys.argv[1])
+
+    generate_traceability_matrix(project_root)
 
 
 if __name__ == "__main__":
