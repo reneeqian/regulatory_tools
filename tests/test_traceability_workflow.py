@@ -347,9 +347,10 @@ def test_evidence_summary_generation(tmp_path):
     run.mkdir(parents=True)
 
     artifact = {
-        "requirement_id": "VER-001",
-        "status": "PASS",
-        "severity": "low"
+        "test_id": "test_risk",
+        "requirements": ["VER-001"],
+        "result": "PASS",
+        "severity": "low",
     }
 
     (run / "artifact.json").write_text(json.dumps(artifact))
