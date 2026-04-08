@@ -69,41 +69,50 @@ class EvidenceReport:
         return "\n".join(lines)
     
     def print_summary(self) -> None:
-        print("\n=== Evidence Report ===")
-        print(f"Subject: {self.subject}")
-
-        errors = [i for i in self.issues if i.level == "ERROR"]
+        errors   = [i for i in self.issues if i.level == "ERROR"]
         warnings = [i for i in self.issues if i.level == "WARN"]
-        infos = [i for i in self.issues if i.level == "INFO"]
+        infos    = [i for i in self.issues if i.level == "INFO"]
 
-        print(f"Errors:   {len(errors)}")
-        print(f"Warnings: {len(warnings)}")
-        print(f"Info:     {len(infos)}")
+        status = "❌ FAIL" if errors else "✅ PASS"
 
-        if errors:
-            print("\nErrors:")
-            for e in errors:
-                print(f"  ❌ {e.message}")
-                if e.context:
-                    print(f"     ↳ {e.context}")
+        print(f"\n╔══ Evidence Report: {self.subject} {'═' * max(0, 42 - len(self.subject))}╗")
+        print(f"║  Status:   {status}")
+        print(f"║  Errors:   {len(errors)}   Warnings: {len(warnings)}   Info: {len(infos)}")
+        print(f"╚{'═' * 60}╝")
 
-        if warnings:
-            print("\nWarnings:")
-            for w in warnings:
-                print(f"  ⚠️  {w.message}")
-                if w.context:
-                    print(f"     ↳ {w.context}")
+        def _render_group(issues, icon, label):
+            if not issues:
+                return
 
-        """
-        if infos:
-            print("\nInfo:")
-            for i in infos:
-                print(f"  ℹ️  {i.message}")
-                if i.context:
-                    print(f"     ↳ {i.context}")
-        """
+            # Group by message so repeated occurrences collapse into one row with a count
+            from collections import defaultdict
+            grouped = defaultdict(list)  # message -> [context, ...]
+            for i in issues:
+                grouped[i.message].append(i.context or "")
 
-        print("\n=== End Evidence Report ===\n")
+            print(f"\n  {icon} {label} ({len(issues)} total)")
+            print(f"  {'─' * 58}")
+
+            for msg, contexts in grouped.items():
+                count = len(contexts)
+                count_badge = f" ×{count}" if count > 1 else ""
+                print(f"  {icon} {msg}{count_badge}")
+
+                # Show up to 3 context lines; collapse the rest with a note
+                show = contexts if count <= 4 else contexts[:3]
+                for ctx in show:
+                    if ctx:
+                        # Truncate very long context strings
+                        short = (ctx[:110] + "…") if len(ctx) > 110 else ctx
+                        print(f"       ↳ {short}")
+                if count > 4:
+                    print(f"       ↳ … and {count - 3} more (see full report for details)")
+
+        _render_group(errors,   "❌", "ERRORS")
+        _render_group(warnings, "⚠️ ", "WARNINGS")
+        # Info is intentionally suppressed in terminal output (too verbose)
+
+        print(f"\n{'─' * 62}\n")
         
         
     def to_dict(self) -> dict:
