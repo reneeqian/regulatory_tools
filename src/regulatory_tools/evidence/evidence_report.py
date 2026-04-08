@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
 import json
@@ -9,7 +9,7 @@ import os
 class EvidenceIssue:
     level: str                  # ERROR | WARN | INFO
     message: str
-    requirement_id: str | None  # <-- ADD
+    requirement_tag: str | None  # <-- ADD
     context: str | None = None
 
 
@@ -20,19 +20,23 @@ class EvidenceReport:
     timestamp: datetime = field(default_factory=datetime.utcnow)
     issues: List[EvidenceIssue] = field(default_factory=list)
     requirements: set[str] = field(default_factory=set)
+    requirement_provider: Optional[object] = None
 
 
-    def error(self, message: str, requirement_id: str, context: str | None = None):
-        self.requirements.add(requirement_id)
-        self.issues.append(EvidenceIssue("ERROR", message, requirement_id, context))
+    def error(self, message: str, requirement_tag: str | None, context: str | None = None):
+        if requirement_tag:
+            self.requirements.add(requirement_tag)
+        self.issues.append(EvidenceIssue("ERROR", message, requirement_tag, context))
 
-    def warn(self, message: str, requirement_id: str, context: str | None = None):
-        self.requirements.add(requirement_id)
-        self.issues.append(EvidenceIssue("WARN", message, requirement_id, context))
+    def warn(self, message: str, requirement_tag: str | None, context: str | None = None):
+        if requirement_tag:
+            self.requirements.add(requirement_tag)
+        self.issues.append(EvidenceIssue("WARN", message, requirement_tag, context))
 
-    def info(self, message: str, requirement_id: str, context: str | None = None):
-        self.requirements.add(requirement_id)
-        self.issues.append(EvidenceIssue("INFO", message, requirement_id, context))
+    def info(self, message: str, requirement_tag: str | None, context: str | None = None):
+        if requirement_tag:
+            self.requirements.add(requirement_tag)
+        self.issues.append(EvidenceIssue("INFO", message, requirement_tag, context))
 
     @property
     def result(self) -> str:
@@ -58,7 +62,7 @@ class EvidenceReport:
 
         for i in self.issues:
             prefix = f"[{i.level}]"
-            req = f" [{i.requirement_id}]" if i.requirement_id else ""
+            req = f" [{i.requirement_tag}]" if i.requirement_tag else ""
             ctx = f" ({i.context})" if i.context else ""
             lines.append(f"{prefix}{req} {i.message}{ctx}")
 
@@ -69,7 +73,7 @@ class EvidenceReport:
         print(f"Subject: {self.subject}")
 
         errors = [i for i in self.issues if i.level == "ERROR"]
-        warnings = [i for i in self.issues if i.level == "WARNING"]
+        warnings = [i for i in self.issues if i.level == "WARN"]
         infos = [i for i in self.issues if i.level == "INFO"]
 
         print(f"Errors:   {len(errors)}")
@@ -90,12 +94,14 @@ class EvidenceReport:
                 if w.context:
                     print(f"     ↳ {w.context}")
 
+        """
         if infos:
             print("\nInfo:")
             for i in infos:
                 print(f"  ℹ️  {i.message}")
                 if i.context:
                     print(f"     ↳ {i.context}")
+        """
 
         print("\n=== End Evidence Report ===\n")
         
@@ -106,13 +112,14 @@ class EvidenceReport:
             "subject": self.subject,
             "timestamp": self.timestamp.isoformat(),
             "result": self.result,
-            "requirements": sorted(self.requirements),
+            "requirement_tags": sorted(self.requirements),   # 👈 keep this
+            "requirements": sorted(self.resolve_requirement_ids()),  # 👈 resolved
             "issues": [
                 {
                     "level": i.level,
                     "message": i.message,
                     "context": i.context,
-                    "requirement_id": i.requirement_id,
+                    "requirement_tag": i.requirement_tag,
                 }
                 for i in self.issues
             ],
@@ -126,7 +133,7 @@ class EvidenceReport:
 
         for i in self.issues:
             ctx = f" ({i.context})" if i.context else ""
-            req = f" [Req: {i.requirement_id}]" if i.requirement_id else ""
+            req = f" [Req: {i.requirement_tag}]" if i.requirement_tag else ""
             lines.append(f"- **{i.level}**{req}: {i.message}{ctx}")
 
         return "\n".join(lines)
@@ -145,6 +152,46 @@ class EvidenceReport:
         safe_name = name.replace("::", "_").replace("/", "_")
         path = root / f"{safe_name}_{ts}.json"
         self.save(path)
+    
+    def merge(self, other: "EvidenceReport", prefix: str | None = None):
+        """
+        Merge another report into this one.
+        Optionally prefix context (e.g., patient_id).
+        """
+        for issue in other.issues:
+            context = issue.context
+
+            if prefix:
+                context = f"{prefix} | {context}" if context else prefix
+
+            self.issues.append(
+                EvidenceIssue(
+                    level=issue.level,
+                    message=issue.message,
+                    requirement_tag=issue.requirement_tag,
+                    context=context,
+                )
+            )
+
+        self.requirements.update(other.requirements)
+        
+        
+    def resolve_requirement_ids(self) -> set[str]:
+        if not self.requirement_provider:
+            return set()
+
+        resolved = set()
+
+        for tag in self.requirements:
+            ids = self.requirement_provider.get_ids(tag) or []
+
+            if not ids:
+                # Optional but VERY useful
+                print(f"[WARN] No requirement mapping for tag '{tag}'")
+
+            resolved.update(ids)
+
+        return resolved
         
 def generate_evidence_summary(evidence_run_dir: Path) -> dict:
     """

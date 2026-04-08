@@ -61,13 +61,6 @@ def run_pytest_with_coverage():
     print(f"\n[Coverage] Reports saved to: {coverage_dir}\n")
 
 def collect_requirement_markers(test_root: Path):
-    """
-    Scan pytest files and collect requirement markers.
-
-    Returns:
-        dict[str, list[str]]
-        { requirement_id: [test_node_ids...] }
-    """
 
     requirement_map = {}
 
