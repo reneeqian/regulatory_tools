@@ -209,3 +209,10 @@ def apply_test_markers(matrix, marker_links):
         markers = set(marker_links.get(req_id, []))
 
         row["tests"] = ", ".join(sorted(existing | markers))
+
+        # Marker-based linkage should count as requirement coverage even
+        # when no explicit evidence record resolved back to the
+        # requirement. Evidence-backed PASS/FAIL remains the stronger
+        # status and is left unchanged.
+        if markers and row.get("status") == "UNTESTED":
+            row["status"] = "LINKED"

@@ -1,6 +1,8 @@
 from pathlib import Path
 from regulatory_tools.traceability.pipeline import generate_traceability_matrix
 from regulatory_tools.traceability.test_scanner import collect_requirement_markers
+from regulatory_tools.traceability.generator import build_trace_matrix, apply_test_markers
+from regulatory_tools.traceability.coverage import compute_requirement_coverage
 
 import pytest
 
@@ -121,3 +123,53 @@ def test_run_tests_and_trace_smoke(tmp_path):
     create_dummy_requirements(project / "docs" / "requirements.yaml")
 
     run_tests_and_trace(project)
+
+
+@pytest.mark.requirement("VER-002")
+@pytest.mark.requirement("VER-005")
+def test_requirement_markers_count_as_linked_coverage(tmp_path):
+
+    project = tmp_path / "proj"
+    (project / "docs").mkdir(parents=True)
+    (project / "tests").mkdir()
+    (project / "artifacts" / "evidence_runs").mkdir(parents=True)
+
+    (project / "docs" / "requirements.yaml").write_text(
+        """
+requirements:
+  - id: VER-001
+    description: example
+  - id: VER-002
+    description: second example
+"""
+    )
+
+    (project / "tests" / "test_example.py").write_text(
+        '''
+import pytest
+
+@pytest.mark.requirement("VER-001")
+def test_a():
+    assert True
+'''
+    )
+
+    matrix = build_trace_matrix(
+        requirements_yaml=project / "docs" / "requirements.yaml",
+        evidence_root=project / "artifacts" / "evidence_runs",
+    )
+    marker_links = collect_requirement_markers(project / "tests", project)
+    apply_test_markers(matrix, marker_links)
+
+    matrix_by_id = {row["requirement_id"]: row for row in matrix}
+
+    assert matrix_by_id["VER-001"]["status"] == "LINKED"
+    assert "tests/test_example.py::test_a" in matrix_by_id["VER-001"]["tests"]
+    assert matrix_by_id["VER-002"]["status"] == "UNTESTED"
+
+    coverage, tested, total, untested = compute_requirement_coverage(matrix)
+
+    assert coverage == 50.0
+    assert tested == 1
+    assert total == 2
+    assert untested == ["VER-002"]
