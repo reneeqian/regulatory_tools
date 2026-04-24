@@ -30,6 +30,8 @@ def run_pytest_with_coverage(project_root: Path):
 
     result = subprocess.run(
         [
+            sys.executable,
+            "-m",
             "pytest",
             str(test_dir),
             f"--cov={source}",

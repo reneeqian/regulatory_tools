@@ -18,7 +18,9 @@ def load_latest_evidence(root: Path):
 
     for file in latest.glob("*.json"):
         try:
-            records.append(json.loads(file.read_text()))
+            record = json.loads(file.read_text())
+            record["_evidence_file"] = file.name
+            records.append(record)
         except Exception:
             continue
 

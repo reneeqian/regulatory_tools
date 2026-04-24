@@ -3,8 +3,10 @@ from regulatory_tools.traceability.pipeline import generate_traceability_matrix
 from regulatory_tools.traceability.test_scanner import collect_requirement_markers
 from regulatory_tools.traceability.generator import build_trace_matrix, apply_test_markers
 from regulatory_tools.traceability.coverage import compute_requirement_coverage
+from regulatory_tools.testing.pytest_runner import run_pytest_with_coverage
 
 import pytest
+import sys
 
 # ----------------------------
 # Helpers
@@ -173,3 +175,33 @@ def test_a():
     assert tested == 1
     assert total == 2
     assert untested == ["VER-002"]
+
+
+@pytest.mark.requirement("SYS-001")
+def test_run_pytest_with_coverage_uses_active_python(tmp_path, monkeypatch):
+
+    project = tmp_path / "proj"
+    test_dir = project / "tests"
+    pkg_dir = project / "src" / "dummy_pkg"
+
+    test_dir.mkdir(parents=True)
+    pkg_dir.mkdir(parents=True)
+    (pkg_dir / "__init__.py").write_text("")
+    (test_dir / "test_example.py").write_text("def test_ok():\n    assert True\n")
+
+    captured = {}
+
+    class DummyResult:
+        returncode = 0
+
+    def fake_run(args, cwd):
+        captured["args"] = args
+        captured["cwd"] = cwd
+        return DummyResult()
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+
+    run_pytest_with_coverage(project)
+
+    assert captured["args"][:3] == [sys.executable, "-m", "pytest"]
+    assert captured["cwd"] == project

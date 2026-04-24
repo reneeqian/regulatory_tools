@@ -5,6 +5,21 @@ import yaml
 from .evidence_loader import load_latest_evidence
 
 
+def _extract_requirement_ids_from_issues(record: dict) -> List[str]:
+    issue_ids = []
+
+    for issue in record.get("issues", []):
+        requirement_id = issue.get("requirement_id")
+        requirement_tag = issue.get("requirement_tag")
+
+        if requirement_id:
+            issue_ids.append(requirement_id)
+        elif requirement_tag:
+            issue_ids.append(requirement_tag)
+
+    return issue_ids
+
+
 def _extract_requirement_ids(record) -> List[str]:
     """
     Extract requirement IDs from an evidence record.
@@ -17,15 +32,17 @@ def _extract_requirement_ids(record) -> List[str]:
         "requirement_id": "VER-1"
     """
     if "requirements" in record and isinstance(record["requirements"], list):
-        return record["requirements"]
+        if record["requirements"]:
+            return record["requirements"]
 
     if "requirement_ids" in record:
-        return record["requirement_ids"]
+        if record["requirement_ids"]:
+            return record["requirement_ids"]
 
     if "requirement_id" in record:
         return [record["requirement_id"]]
 
-    return []
+    return _extract_requirement_ids_from_issues(record)
 
 
 def load_requirements(requirements_yaml: Path) -> Dict[str, dict]:

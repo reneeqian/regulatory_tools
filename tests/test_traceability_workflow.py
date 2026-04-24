@@ -269,6 +269,45 @@ def test_unknown_requirement_in_evidence(tmp_path: Path):
     assert matrix
 
 
+@pytest.mark.requirement("VER-002")
+def test_evidence_issue_requirement_ids_link_matrix_when_top_level_missing(tmp_path: Path):
+
+    req_yaml = tmp_path / "requirements.yaml"
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+
+    create_dummy_requirements(req_yaml)
+
+    run_dir = evidence_root / "run"
+    run_dir.mkdir()
+
+    record = {
+        "test_id": "test_issue_level_mapping",
+        "requirements": [],
+        "result": "PASS",
+        "issues": [
+            {
+                "level": "INFO",
+                "message": "linked via issue requirement id",
+                "requirement_id": "VER-001",
+            }
+        ],
+    }
+
+    (run_dir / "issue_level.json").write_text(json.dumps(record))
+
+    matrix = build_trace_matrix(
+        requirements_yaml=req_yaml,
+        evidence_root=evidence_root,
+    )
+
+    matrix_by_id = {row["requirement_id"]: row for row in matrix}
+
+    assert matrix_by_id["VER-001"]["status"] == "PASS"
+    assert "test_issue_level_mapping" in matrix_by_id["VER-001"]["tests"]
+    assert "issue_level.json" in matrix_by_id["VER-001"]["evidence_files"]
+
+
 @pytest.mark.requirement("VER-003")
 def test_empty_evidence_directory(tmp_path: Path):
 
