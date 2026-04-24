@@ -12,6 +12,11 @@ dependencies = [
     "pyyaml",
 ]
 
+[project.optional-dependencies]
+forge = [
+    "forge-utils @ file:///Users/reneeqian/Documents/PythonStuff/Utilities/forge",
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 

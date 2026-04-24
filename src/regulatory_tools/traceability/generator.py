@@ -129,6 +129,7 @@ def write_markdown(
         output: Path,
         req_coverage_summary=None,
         code_coverage_summary=None,
+        forge_health=None,
     ):
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -170,6 +171,41 @@ def write_markdown(
                 "Detailed uncovered lines saved in "
                 "`artifacts/coverage/uncovered_lines.txt`\n\n"
             )
+
+        # ---------------------------------------------------------
+        # Forge Code Health (optional — only when forge is installed)
+        # ---------------------------------------------------------
+
+        if forge_health is not None:
+            f.write("## Forge Code Health\n\n")
+
+            score = forge_health.get("overall_score")
+            grade = forge_health.get("grade", "N/A")
+            generated_at = forge_health.get("generated_at", "")
+
+            if score is not None:
+                f.write(f"**Overall Score:** {score:.1%}  **Grade:** {grade}\n\n")
+            else:
+                f.write(f"**Overall Score:** N/A  **Grade:** {grade}\n\n")
+
+            if generated_at:
+                f.write(f"*Generated at {generated_at}*\n\n")
+
+            collectors = forge_health.get("collectors", {})
+            if collectors:
+                f.write("| Collector | Score | Status |\n")
+                f.write("|-----------|-------|--------|\n")
+                for name, data in collectors.items():
+                    display_name = name.replace("_", " ").title()
+                    if data.get("skipped"):
+                        reason = data.get("skip_reason") or "skipped"
+                        f.write(f"| {display_name} | — | {_sanitize_cell(reason)} |\n")
+                    else:
+                        s = data.get("score")
+                        score_cell = f"{s:.1%}" if s is not None else "—"
+                        status_cell = "ok" if s is not None and s >= 0.7 else "needs attention"
+                        f.write(f"| {display_name} | {score_cell} | {status_cell} |\n")
+                f.write("\n")
 
         # ---------------------------------------------------------
         # Traceability Table

@@ -8,7 +8,7 @@ from .test_scanner import collect_requirement_markers
 
 
 def generate_traceability_matrix(project_root):
-    
+
     (project_root / "artifacts").mkdir(exist_ok=True)
     (project_root / "artifacts" / "evidence_runs").mkdir(exist_ok=True)
     (project_root / "artifacts" / "coverage").mkdir(exist_ok=True)
@@ -29,7 +29,26 @@ def generate_traceability_matrix(project_root):
 
     coverage, tested, total, untested = compute_requirement_coverage(matrix)
 
-    code_coverage, uncovered = compute_code_coverage(project_root)
+    # Attempt forge health check (reads existing coverage.xml — does not re-run tests)
+    forge_summary = None
+    code_coverage = None
+    uncovered: dict = {}
+
+    try:
+        from ..quality.forge_integration import get_forge_health, forge_health_as_dict
+        forge_report = get_forge_health(project_root)
+        if forge_report is not None:
+            forge_summary = forge_health_as_dict(forge_report)
+            tm = forge_report.test_metrics
+            if not tm.skipped and tm.line_coverage is not None:
+                code_coverage = tm.line_coverage
+    except ImportError:
+        pass
+
+    # Fall back to standalone coverage parsing when forge is unavailable or
+    # when forge's test_metrics couldn't read a coverage report
+    if code_coverage is None:
+        code_coverage, uncovered = compute_code_coverage(project_root)
 
     save_uncovered_lines(project_root, uncovered)
 
@@ -45,4 +64,5 @@ def generate_traceability_matrix(project_root):
         code_coverage_summary={
             "coverage": code_coverage
         },
+        forge_health=forge_summary,
     )
