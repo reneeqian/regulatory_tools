@@ -55,3 +55,11 @@ regulatory_tools/
 
 Demonstration infrastructure only.
 Not an FDA submission package.
+
+---
+
+## Forge Health
+
+<!-- forge-health-start -->
+*Report not yet generated.*
+<!-- forge-health-end -->
