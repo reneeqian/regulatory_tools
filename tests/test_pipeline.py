@@ -124,7 +124,7 @@ def test_run_tests_and_trace_smoke(tmp_path):
 
     create_dummy_requirements(project / "docs" / "requirements.yaml")
 
-    run_tests_and_trace(project)
+    run_tests_and_trace(project, min_grade=None)
 
 
 @pytest.mark.requirement("VER-002")

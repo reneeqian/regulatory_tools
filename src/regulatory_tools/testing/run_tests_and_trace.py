@@ -9,7 +9,7 @@ from .pytest_runner import run_pytest_with_coverage
 _GRADE_ORDER: dict[str, int] = {"A": 4, "B": 3, "C": 2, "D": 1, "F": 0}
 
 
-def run_tests_and_trace(project_root: Path, min_grade: str = "B") -> None:
+def run_tests_and_trace(project_root: Path, min_grade: str | None = "B") -> None:
     """
     Full verification pipeline for regulated projects.
 
@@ -35,6 +35,11 @@ def run_tests_and_trace(project_root: Path, min_grade: str = "B") -> None:
     grade = forge_summary.get("grade", "N/A")
     score = forge_summary.get("overall_score")
     score_display = f"{score:.2f}" if score is not None else "N/A"
+
+    if min_grade is None:
+        print(f"[forge] Grade: {grade} (score: {score_display}) — grade enforcement disabled.")
+        return
+
     min_rank = _GRADE_ORDER.get(min_grade, 3)
     actual_rank = _GRADE_ORDER.get(grade, -1)
 
