@@ -1,6 +1,7 @@
 import subprocess
-from pathlib import Path
 import sys
+from pathlib import Path
+
 
 def detect_source_package(project_root):
 
@@ -20,9 +21,9 @@ def run_pytest_with_coverage(project_root: Path):
     test_dir = project_root / "tests"
     coverage_dir = project_root / "artifacts" / "coverage"
     coverage_dir.mkdir(parents=True, exist_ok=True)
-    
+
     source = detect_source_package(project_root)
-    
+
     # Skip pytest if no tests exist
     if not any(test_dir.rglob("test_*.py")):
         print("No tests detected — skipping pytest execution.")

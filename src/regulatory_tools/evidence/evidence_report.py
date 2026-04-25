@@ -1,9 +1,9 @@
+import json
 from dataclasses import dataclass, field
-from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
-import json
-import os
+from typing import List, Optional
+
 
 @dataclass
 class EvidenceIssue:
@@ -53,7 +53,7 @@ class EvidenceReport:
             ctx = f" ({i.context})" if i.context else ""
             lines.append(f"{prefix} {i.message}{ctx}")
         return "\n".join(lines)
-    
+
     def to_string(self) -> str:
         """
         Human-readable string representation suitable for exceptions.
@@ -67,7 +67,7 @@ class EvidenceReport:
             lines.append(f"{prefix}{req} {i.message}{ctx}")
 
         return "\n".join(lines)
-    
+
     def print_summary(self) -> None:
         errors   = [i for i in self.issues if i.level == "ERROR"]
         warnings = [i for i in self.issues if i.level == "WARN"]
@@ -113,8 +113,8 @@ class EvidenceReport:
         # Info is intentionally suppressed in terminal output (too verbose)
 
         print(f"\n{'─' * 62}\n")
-        
-        
+
+
     def to_dict(self) -> dict:
         return {
             "test_id": self.test_id,
@@ -161,7 +161,7 @@ class EvidenceReport:
         safe_name = name.replace("::", "_").replace("/", "_")
         path = root / f"{safe_name}_{ts}.json"
         self.save(path)
-    
+
     def merge(self, other: "EvidenceReport", prefix: str | None = None):
         """
         Merge another report into this one.
@@ -183,8 +183,8 @@ class EvidenceReport:
             )
 
         self.requirements.update(other.requirements)
-        
-        
+
+
     def resolve_requirement_ids(self) -> set[str]:
         if not self.requirement_provider:
             return set()
@@ -201,7 +201,7 @@ class EvidenceReport:
             resolved.update(ids)
 
         return resolved
-        
+
 def generate_evidence_summary(evidence_run_dir: Path) -> dict:
     """
     Aggregates evidence JSON files from a single evidence run directory.

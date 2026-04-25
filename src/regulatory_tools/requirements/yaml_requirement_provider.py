@@ -1,5 +1,7 @@
-import yaml
 from collections import defaultdict
+
+import yaml
+
 
 class YamlRequirementProvider:
 

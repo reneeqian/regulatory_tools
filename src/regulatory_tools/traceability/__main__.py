@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+
 from .pipeline import generate_traceability_matrix
 
 

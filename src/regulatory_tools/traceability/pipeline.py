@@ -1,9 +1,6 @@
-from pathlib import Path
 
-from .generator import build_trace_matrix, write_markdown, apply_test_markers
-from .validate_traceability import validate_traceability, find_unmarked_tests
-from .coverage import compute_requirement_coverage
-from .coverage import compute_code_coverage, save_uncovered_lines
+from .coverage import compute_code_coverage, compute_requirement_coverage, save_uncovered_lines
+from .generator import apply_test_markers, build_trace_matrix, write_markdown
 from .test_scanner import collect_requirement_markers
 
 
@@ -35,7 +32,7 @@ def generate_traceability_matrix(project_root):
     uncovered: dict = {}
 
     try:
-        from ..quality.forge_integration import get_forge_health, forge_health_as_dict
+        from ..quality.forge_integration import forge_health_as_dict, get_forge_health
         forge_report = get_forge_health(project_root)
         if forge_report is not None:
             forge_summary = forge_health_as_dict(forge_report)

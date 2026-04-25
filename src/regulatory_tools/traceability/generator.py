@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import List, Dict
+from typing import Any
+
 import yaml
 
 from .evidence_loader import load_latest_evidence
 
 
-def _extract_requirement_ids_from_issues(record: dict) -> List[str]:
+def _extract_requirement_ids_from_issues(record: dict[str, Any]) -> list[str]:
     issue_ids = []
 
     for issue in record.get("issues", []):
@@ -20,7 +23,7 @@ def _extract_requirement_ids_from_issues(record: dict) -> List[str]:
     return issue_ids
 
 
-def _extract_requirement_ids(record) -> List[str]:
+def _extract_requirement_ids(record: dict[str, Any]) -> list[str]:
     """
     Extract requirement IDs from an evidence record.
 
@@ -45,7 +48,7 @@ def _extract_requirement_ids(record) -> List[str]:
     return _extract_requirement_ids_from_issues(record)
 
 
-def load_requirements(requirements_yaml: Path) -> Dict[str, dict]:
+def load_requirements(requirements_yaml: Path) -> dict[str, dict[str, str]]:
     with requirements_yaml.open() as f:
         data = yaml.safe_load(f)
 
@@ -62,7 +65,7 @@ def load_requirements(requirements_yaml: Path) -> Dict[str, dict]:
 def build_trace_matrix(
     requirements_yaml: Path,
     evidence_root: Path,
-) -> List[dict]:
+) -> list[dict[str, Any]]:
 
     requirements = load_requirements(requirements_yaml)
 
@@ -72,7 +75,7 @@ def build_trace_matrix(
         evidence = []
 
     # Map requirement → list of evidence records
-    evidence_map: Dict[str, List[dict]] = {}
+    evidence_map: dict[str, list[dict[str, Any]]] = {}
 
     for record in evidence:
         req_ids = _extract_requirement_ids(record)
@@ -125,12 +128,12 @@ def _sanitize_cell(text: str) -> str:
 
 
 def write_markdown(
-        matrix: List[dict],
+        matrix: list[dict[str, Any]],
         output: Path,
-        req_coverage_summary=None,
-        code_coverage_summary=None,
-        forge_health=None,
-    ):
+        req_coverage_summary: dict[str, Any] | None = None,
+        code_coverage_summary: dict[str, Any] | None = None,
+        forge_health: dict[str, Any] | None = None,
+    ) -> None:
 
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -151,7 +154,7 @@ def write_markdown(
                 f"**Coverage:** {req_coverage_summary['coverage']:.1f}% "
                 f"({req_coverage_summary['tested']} / {req_coverage_summary['total']} requirements tested)\n\n"
             )
-        
+
         # ---------------------------------------------------------
         # Code Coverage Summary
         # ---------------------------------------------------------
@@ -166,7 +169,7 @@ def write_markdown(
                 f.write("**Line Coverage:** N/A\n\n")
             else:
                 f.write(f"**Line Coverage:** {coverage:.1f}%\n\n")
-                
+
             f.write(
                 "Detailed uncovered lines saved in "
                 "`artifacts/coverage/uncovered_lines.txt`\n\n"
@@ -235,7 +238,7 @@ def write_markdown(
             f.write("\n## Untested Requirements\n\n")
             for req in req_coverage_summary["untested"]:
                 f.write(f"- {req}\n")
-        
+
         # ---------------------------------------------------------
         # Summary Stats
         # ---------------------------------------------------------
@@ -249,7 +252,9 @@ def write_markdown(
         f.write(f"Tested: {tested}\n\n")
         f.write(f"Failures: {failed}\n")
 
-def apply_test_markers(matrix, marker_links):
+def apply_test_markers(
+    matrix: list[dict[str, Any]], marker_links: dict[str, list[str]]
+) -> None:
 
     for row in matrix:
 

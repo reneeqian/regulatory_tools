@@ -1,6 +1,7 @@
-import yaml
 import re
 from pathlib import Path
+
+import yaml
 
 REQ_ID_REGEX = r"(?:[A-Z]+-)?[A-Z]+-\d{3,}"
 REQ_ID_PATTERN = re.compile(rf"^{REQ_ID_REGEX}$")
@@ -9,9 +10,9 @@ REQ_MARK_PATTERN = re.compile(
 )
 
 
-def extract_requirement_marks(test_dir: Path):
+def extract_requirement_marks(test_dir: Path) -> set[str]:
 
-    found = set()
+    found: set[str] = set()
 
     for file in test_dir.rglob("test_*.py"):
         text = file.read_text()
@@ -20,14 +21,14 @@ def extract_requirement_marks(test_dir: Path):
     return found
 
 
-def load_requirements(path: Path):
+def load_requirements(path: Path) -> set[str]:
 
     data = yaml.safe_load(path.read_text())
 
     if "requirements" not in data:
         raise Exception("Invalid requirements.yaml: missing 'requirements' field")
 
-    ids = set()
+    ids: set[str] = set()
 
     for req in data["requirements"]:
 
@@ -47,7 +48,9 @@ def load_requirements(path: Path):
     return ids
 
 
-def validate_traceability(requirements_yaml: Path, test_dir: Path):
+def validate_traceability(
+    requirements_yaml: Path, test_dir: Path
+) -> tuple[set[str], set[str]]:
 
     declared = load_requirements(requirements_yaml)
     tested = extract_requirement_marks(test_dir)
@@ -58,11 +61,11 @@ def validate_traceability(requirements_yaml: Path, test_dir: Path):
     return missing, untracked
 
 
-def find_unmarked_tests(test_dir: Path):
+def find_unmarked_tests(test_dir: Path) -> list[str]:
 
     test_function_pattern = re.compile(r"def test_")
 
-    unmarked = []
+    unmarked: list[str] = []
 
     for test_file in test_dir.rglob("test_*.py"):
 
