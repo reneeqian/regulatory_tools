@@ -13,6 +13,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "importlib_resources",
+]
 forge = [
     "forge-utils @ file:///Users/reneeqian/Documents/PythonStuff/Utilities/forge",
 ]
