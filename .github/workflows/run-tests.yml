@@ -1,0 +1,29 @@
+name: Regulatory Tools CI
+
+on:
+  push:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml importlib_resources
+
+      - name: Install project
+        run: pip install -e .
+
+      - name: Run tests
+        run: python -m pytest -q
