@@ -1,0 +1,35 @@
+name: Regulatory Tools CI
+
+on:
+  push:
+
+jobs:
+  forge-health:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "git+https://github.com/reneeqian/forge.git[collectors]"
+
+      - name: Install project
+        run: pip install -e .
+
+      - name: Run forge health assessment
+        run: python runtests.py
+
+      - name: Upload health report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-health-report
+          path: |
+            docs/traceability_matrix.md
+            artifacts/
