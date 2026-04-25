@@ -63,3 +63,5 @@ def generate_traceability_matrix(project_root):
         },
         forge_health=forge_summary,
     )
+
+    return forge_summary

@@ -87,3 +87,63 @@ def forge_health_as_dict(report: "ProjectHealthReport") -> dict:
         "generated_at": report.generated_at.isoformat(),
         "collectors": collectors,
     }
+
+
+_COLLECTOR_DISPLAY_NAMES: dict[str, str] = {
+    "test_metrics": "Test Metrics",
+    "complexity": "Complexity",
+    "dependency_health": "Dependency Health",
+    "requirements_coverage": "Requirements Coverage",
+    "static_analysis": "Static Analysis",
+    "type_coverage": "Type Coverage",
+    "dead_code": "Dead Code",
+    "mutation_testing": "Mutation Testing",
+}
+
+_README_START = "<!-- forge-health-start -->"
+_README_END = "<!-- forge-health-end -->"
+
+
+def update_readme_forge_health(project_root: Path, forge_summary: dict) -> None:
+    """Write/replace the forge health section in README.md.
+
+    Replaces content between <!-- forge-health-start --> and <!-- forge-health-end -->.
+    If the markers are absent, appends a new ## Forge Health section.
+    """
+    readme_path = project_root / "README.md"
+    if not readme_path.exists():
+        return
+
+    grade = forge_summary.get("grade", "N/A")
+    overall = forge_summary.get("overall_score")
+    generated_at = forge_summary.get("generated_at", "")[:10]  # YYYY-MM-DD
+
+    score_display = f"{overall:.2f}" if overall is not None else "N/A"
+
+    rows = []
+    for key, display in _COLLECTOR_DISPLAY_NAMES.items():
+        c = forge_summary.get("collectors", {}).get(key)
+        if c is None or c.get("skipped"):
+            continue
+        score = c.get("score")
+        rows.append(f"| {display} | {score:.2f} |" if score is not None else f"| {display} | N/A |")
+
+    table = "\n".join(["| Collector | Score |", "|-----------|-------|"] + rows) if rows else ""
+
+    block = (
+        f"*Last run: {generated_at}*\n\n"
+        f"**Grade: {grade}** (score: {score_display})\n\n"
+        f"{table}"
+    )
+
+    report_section = f"{_README_START}\n{block}\n{_README_END}"
+
+    text = readme_path.read_text()
+    if _README_START in text and _README_END in text:
+        before = text[: text.index(_README_START)]
+        after = text[text.index(_README_END) + len(_README_END) :]
+        text = before + report_section + after
+    else:
+        text = text.rstrip("\n") + f"\n\n## Forge Health\n\n{report_section}\n"
+
+    readme_path.write_text(text)

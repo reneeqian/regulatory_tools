@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -47,3 +48,9 @@ def run_pytest_with_coverage(project_root: Path):
     if result.returncode != 0:
         print("Pytest failed.")
         sys.exit(1)
+
+    # Copy coverage.xml to the project root so forge can locate it with skip_test_run=True.
+    # Forge expects coverage.xml at the project root by default.
+    xml_in_artifacts = coverage_dir / "coverage.xml"
+    if xml_in_artifacts.exists():
+        shutil.copy(xml_in_artifacts, project_root / "coverage.xml")

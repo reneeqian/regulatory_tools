@@ -55,3 +55,22 @@ regulatory_tools/
 
 Demonstration infrastructure only.
 Not an FDA submission package.
+
+---
+
+## Forge Health
+
+<!-- forge-health-start -->
+*Last run: 2026-04-25*
+
+**Grade: B** (score: 0.85)
+
+| Collector | Score |
+|-----------|-------|
+| Test Metrics | 0.89 |
+| Complexity | 0.69 |
+| Dependency Health | 0.85 |
+| Requirements Coverage | 1.00 |
+| Static Analysis | 0.76 |
+| Type Coverage | 0.91 |
+<!-- forge-health-end -->
