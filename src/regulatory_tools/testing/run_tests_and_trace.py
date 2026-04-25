@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from .pytest_runner import run_pytest_with_coverage
 from ..traceability.pipeline import generate_traceability_matrix
+from .pytest_runner import run_pytest_with_coverage
 
 
-def run_tests_and_trace(project_root: Path):    
+def run_tests_and_trace(project_root: Path):
     """
     Full verification pipeline for regulated projects.
 

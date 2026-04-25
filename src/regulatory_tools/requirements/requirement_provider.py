@@ -24,7 +24,7 @@ class RequirementProvider(ABC):
             Requirement ID or None if not defined
         """
         pass
-    
+
     def require(self, key: str) -> str:
         """
         Same as get(), but raises if missing.
