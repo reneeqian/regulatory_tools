@@ -1,60 +1,28 @@
 # Regulatory Tools
 
-Automation infrastructure for generating structured, traceable,
-machine-derived regulatory artifacts for SaMD projects.
+Automation infrastructure for machine-generated regulatory artifacts: requirement traceability, evidence reports, and coverage for SaMD demonstration projects.
 
----
+Not an FDA submission package — engineering demonstration only.
 
-## Purpose
+## Install
 
-This repository provides tooling for:
+```bash
+pip install -e .
+```
 
-- requirement validation
-- test linkage
-- evidence aggregation
-- traceability matrix generation
-- code coverage reporting
+## Usage
 
-The objective is deterministic, machine-generated regulatory documentation.
-
----
-
-## Example Usage
-
-Projects typically run:
+Projects call `run_tests_and_trace` as their verification entry point:
 
 ```python
 from regulatory_tools.testing import run_tests_and_trace
 
-run_tests_and_trace(PROJECT_ROOT)
+run_tests_and_trace(project_root=Path(__file__).resolve().parent)
 ```
 
-Which will:
+This runs pytest + coverage, validates requirement traceability, generates `docs/traceability_matrix.md`, updates the README forge health section, and exits 1 if the forge grade is below B.
 
-1. run pytest
-2. compute coverage
-3. validate traceability
-4. generate a traceability matrix
-
----
-
-## Structure
-
-```
-regulatory_tools/
-├── src/regulatory_tools/
-│ ├── testing/
-│ ├── traceability/
-│ └── evidence/
-├── tests/
-├── environment.yml
-└── README.md
-```
-
----
-
-Demonstration infrastructure only.
-Not an FDA submission package.
+Tests link to requirements with `@pytest.mark.requirement("DOMAIN-NNN")` and write structured JSON evidence via `EvidenceReport`. See `docs/Requirements_Convention.md` for the domain prefix table.
 
 ---
 
