@@ -126,6 +126,8 @@ def test_run_tests_and_trace_smoke(tmp_path):
 
     run_tests_and_trace(project, min_grade=None)
 
+    assert (project / "docs" / "traceability_matrix.md").exists()
+
 
 @pytest.mark.requirement("VER-002")
 @pytest.mark.requirement("VER-005")

@@ -88,8 +88,8 @@ def build_trace_matrix(
     for req_id, meta in requirements.items():
         records = evidence_map.get(req_id, [])
 
-        tests = sorted({r.get("test_id", "") for r in records})
-        files = sorted({r.get("_evidence_file", "") for r in records})
+        tests = sorted({r.get("test_id") or "" for r in records})
+        files = sorted({r.get("_evidence_file") or "" for r in records})
         results = {r.get("result", "") for r in records}
 
         if not records:
