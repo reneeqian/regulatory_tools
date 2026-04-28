@@ -406,19 +406,17 @@ def test_evidence_summary_generation(tmp_path):
 @pytest.mark.requirement("INF-003")
 @pytest.mark.requirement("SYS-002")
 def test_code_coverage_computation(tmp_path):
-
-    coverage_file = tmp_path / "coverage.xml"
-
-    coverage_file.write_text(
-        """
-<coverage line-rate="0.85" branch-rate="0.8">
-</coverage>
-"""
+    coverage_xml = tmp_path / "artifacts" / "coverage" / "coverage.xml"
+    coverage_xml.parent.mkdir(parents=True)
+    coverage_xml.write_text(
+        '<coverage line-rate="0.85" branch-rate="0.8"></coverage>'
     )
 
-    result = compute_code_coverage(coverage_file)
+    coverage_pct, uncovered = compute_code_coverage(tmp_path)
 
-    assert result is not None
+    assert coverage_pct is not None
+    assert abs(coverage_pct - 85.0) < 0.1
+    assert isinstance(uncovered, dict)
 
 
 # ------------------------------------------------
