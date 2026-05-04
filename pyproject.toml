@@ -9,7 +9,7 @@ description = "Automation-first regulatory tooling for FDA SaMD development"
 requires-python = ">=3.10"
 
 dependencies = [
-    "pyyaml",
+    "pyyaml==6.0.3",
     "forge-utils @ git+https://github.com/reneeqian/forge.git@main",
 ]
 
