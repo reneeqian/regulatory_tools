@@ -1,0 +1,10 @@
+soup:
+  - name: pyyaml
+    version: "6.0.3"
+    purpose: "Parsing requirements.yaml and other YAML configuration files"
+    license: MIT
+
+  - name: forge-utils
+    version: "main"
+    purpose: "Regulatory health grading, traceability matrix generation, and evidence reporting"
+    license: Internal

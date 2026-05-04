@@ -8,9 +8,26 @@
 
 ## Code Coverage
 
-**Line Coverage:** 86.8%
+**Line Coverage:** 88.8%
 
 Detailed uncovered lines saved in `artifacts/coverage/uncovered_lines.txt`
+
+## Forge Code Health
+
+**Overall Score:** 91.5%  **Grade:** A
+
+*Generated at 2026-05-04T02:24:23.164160+00:00*
+
+| Collector | Score | Status |
+|-----------|-------|--------|
+| Test Metrics | 88.8% | ok |
+| Complexity | — | radon not found — install it with: pip install radon |
+| Dependency Health | — | Could not parse pip-audit output |
+| Requirements Coverage | 100.0% | ok |
+| Static Analysis | 78.2% | ok |
+| Type Coverage | 100.0% | ok |
+| Dead Code | 100.0% | ok |
+| Mutation Testing | — | Disabled by default; set [collectors.mutation_testing] enabled = true in forge.toml |
 
 | Requirement ID | Title | Linked Tests | Evidence Artifacts | Status |
 |----------------|-------------|--------------|--------------------|--------|
