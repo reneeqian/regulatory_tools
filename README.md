@@ -31,13 +31,14 @@ Tests link to requirements with `@pytest.mark.requirement("DOMAIN-NNN")` and wri
 <!-- forge-health-start -->
 *Last run: 2026-05-04*
 
-**Grade: A** (score: 0.91)
+**Grade: B** (score: 0.88)
 
 | Collector | Score |
 |-----------|-------|
 | Test Metrics | 0.89 |
+| Complexity | 0.68 |
+| Dependency Health | 1.00 |
 | Requirements Coverage | 1.00 |
 | Static Analysis | 0.78 |
-| Type Coverage | 1.00 |
-| Dead Code | 1.00 |
+| Type Coverage | 0.91 |
 <!-- forge-health-end -->
