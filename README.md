@@ -20,7 +20,7 @@ from regulatory_tools.testing import run_tests_and_trace
 run_tests_and_trace(project_root=Path(__file__).resolve().parent)
 ```
 
-This runs pytest + coverage, validates requirement traceability, generates `docs/traceability_matrix.md`, updates the README forge health section, and exits 1 if the forge grade is below B.
+This runs pytest + coverage, validates requirement traceability, generates `docs/traceability_matrix.md`, and exits 1 if the forge grade is below B. The forge health report is written to the GitHub Actions job summary — visible in the Checks tab of every PR. Running locally writes the report to README.md between the markers below (local only, not committed).
 
 Tests link to requirements with `@pytest.mark.requirement("DOMAIN-NNN")` and write structured JSON evidence via `EvidenceReport`. See `docs/Requirements_Convention.md` for the domain prefix table.
 
@@ -28,17 +28,7 @@ Tests link to requirements with `@pytest.mark.requirement("DOMAIN-NNN")` and wri
 
 ## Forge Health
 
+Latest report: see the [Actions tab](../../actions) or the job summary on any PR's Checks tab.
+
 <!-- forge-health-start -->
-*Last run: 2026-05-04*
-
-**Grade: B** (score: 0.88)
-
-| Collector | Score |
-|-----------|-------|
-| Test Metrics | 0.89 |
-| Complexity | 0.68 |
-| Dependency Health | 1.00 |
-| Requirements Coverage | 1.00 |
-| Static Analysis | 0.78 |
-| Type Coverage | 0.91 |
 <!-- forge-health-end -->
