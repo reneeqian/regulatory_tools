@@ -2,13 +2,13 @@
 # Applies the standard GitHub repository settings for safety-regulated SaMD projects.
 #
 # Usage:
-#   ./setup_github_settings.sh <owner/repo> [codeowner] [ci_check] [health_check]
+#   ./setup_github_settings.sh <owner/repo> [codeowner] [ci_check]
 #
 # Arguments:
 #   owner/repo    Required. e.g. reneeqian/my_new_project
 #   codeowner     GitHub username for CODEOWNERS. Defaults to the owner part of owner/repo.
-#   ci_check      Name of the test CI status check. Default: test
-#   health_check  Name of the health CI status check. Default: forge-health
+#   ci_check      Name of the CI status check. Default: forge-health
+#                 (forge-health runs pytest internally, so no separate test job is needed)
 #
 # Prerequisites:
 #   - gh CLI authenticated (gh auth status)
@@ -23,14 +23,14 @@
 #
 #   main branch:
 #     - PR required with 1 approving review + code owner review (@codeowner)
-#     - Status checks required (ci_check + health_check), strict (branch must be up-to-date)
+#     - Status checks required (ci_check), strict (branch must be up-to-date)
 #     - No force pushes, no deletions
 #     - Ruleset: only merge commits allowed, stale reviews dismissed on push,
 #       deletion and force-push blocked
 #
 #   dev branch:
 #     - PR required, no approval needed
-#     - Status checks required (ci_check + health_check), non-strict
+#     - Status checks required (ci_check), non-strict
 #     - No force pushes, no deletions
 #     - Ruleset: only squash merges allowed, ci_check required before merge
 #
@@ -49,13 +49,11 @@ fi
 
 OWNER="${REPO%%/*}"
 CODEOWNER="${2:-$OWNER}"
-CI_CHECK="${3:-test}"
-HEALTH_CHECK="${4:-forge-health}"
+CI_CHECK="${3:-forge-health}"
 
 echo "Configuring: $REPO"
 echo "  Code owner : @$CODEOWNER"
 echo "  CI check   : $CI_CHECK"
-echo "  Health check: $HEALTH_CHECK"
 echo ""
 
 # ── Helper ───────────────────────────────────────────────────────────────────
@@ -79,7 +77,7 @@ echo "[2/5] main branch protection (classic)..."
 echo "{
   \"required_status_checks\": {
     \"strict\": true,
-    \"checks\": [{\"context\": \"$CI_CHECK\"}, {\"context\": \"$HEALTH_CHECK\"}]
+    \"checks\": [{\"context\": \"$CI_CHECK\"}]
   },
   \"enforce_admins\": false,
   \"required_pull_request_reviews\": {
@@ -98,7 +96,7 @@ echo "[3/5] dev branch protection (classic)..."
 echo "{
   \"required_status_checks\": {
     \"strict\": false,
-    \"checks\": [{\"context\": \"$CI_CHECK\"}, {\"context\": \"$HEALTH_CHECK\"}]
+    \"checks\": [{\"context\": \"$CI_CHECK\"}]
   },
   \"enforce_admins\": false,
   \"required_pull_request_reviews\": {
@@ -163,7 +161,7 @@ upsert_ruleset "protect the main" "{
   ]
 }"
 
-# dev ruleset — squash only, test CI required before auto-merge
+# dev ruleset — squash only, CI required before auto-merge
 upsert_ruleset "Dev branch — require CI before auto-merge" "{
   \"name\": \"Dev branch — require CI before auto-merge\",
   \"target\": \"branch\",
