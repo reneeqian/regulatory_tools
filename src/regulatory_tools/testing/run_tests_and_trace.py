@@ -23,6 +23,7 @@ def run_tests_and_trace(project_root: Path, min_grade: str | None = "B") -> None
         7. README forge health section update
     """
     run_pytest_with_coverage(project_root)
+    _run_quality_checks(project_root)
     forge_summary = generate_traceability_matrix(project_root)
 
     if forge_summary is None:
@@ -48,3 +49,22 @@ def run_tests_and_trace(project_root: Path, min_grade: str | None = "B") -> None
     if actual_rank < min_rank:
         print(f"[forge] Grade {grade} is below the required minimum {min_grade}. Failing CI.")
         sys.exit(1)
+
+
+def _run_quality_checks(project_root: Path) -> None:
+    from ..quality.soup_checker import check_soup_inventory
+    from ..quality.rsk_checker import check_rsk_requirements
+
+    soup = check_soup_inventory(project_root)
+    if not soup["found"]:
+        print("[WARN] docs/soup.yaml not found — SOUP inventory missing")
+    elif soup["unlisted_deps"]:
+        print(f"[WARN] SOUP inventory missing entries: {soup['unlisted_deps']}")
+    else:
+        print(f"[OK] SOUP inventory found: {soup['soup_path']}")
+
+    rsk = check_rsk_requirements(project_root)
+    if not rsk["found"]:
+        print("[WARN] No RSK- requirements found in docs/requirements.yaml — risk management gap")
+    else:
+        print(f"[OK] RSK requirements present: {rsk['rsk_ids']}")
