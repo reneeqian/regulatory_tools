@@ -5,6 +5,6 @@ soup:
     license: MIT
 
   - name: forge-utils
-    version: "main"
+    version: "0.1.0"
     purpose: "Regulatory health grading, traceability matrix generation, and evidence reporting"
     license: Internal
