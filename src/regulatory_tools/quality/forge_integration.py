@@ -104,6 +104,39 @@ _README_START = "<!-- forge-health-start -->"
 _README_END = "<!-- forge-health-end -->"
 
 
+def write_forge_health_to_summary(forge_summary: dict) -> None:
+    """Write forge health as markdown to $GITHUB_STEP_SUMMARY (CI) or stdout (local)."""
+    import os
+
+    grade = forge_summary.get("grade", "N/A")
+    overall = forge_summary.get("overall_score")
+    generated_at = forge_summary.get("generated_at", "")[:10]
+    score_display = f"{overall:.2f}" if overall is not None else "N/A"
+
+    rows = []
+    for key, display in _COLLECTOR_DISPLAY_NAMES.items():
+        c = forge_summary.get("collectors", {}).get(key)
+        if c is None or c.get("skipped"):
+            continue
+        score = c.get("score")
+        rows.append(f"| {display} | {score:.2f} |" if score is not None else f"| {display} | N/A |")
+
+    table = "\n".join(["| Collector | Score |", "|-----------|-------|"] + rows) if rows else ""
+    block = (
+        f"## Forge Health\n\n"
+        f"*Last run: {generated_at}*\n\n"
+        f"**Grade: {grade}** (score: {score_display})\n\n"
+        f"{table}\n"
+    )
+
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_path:
+        with open(summary_path, "a") as f:
+            f.write(block)
+    else:
+        print(block)
+
+
 def update_readme_forge_health(project_root: Path, forge_summary: dict) -> None:
     """Write/replace the forge health section in README.md.
 
