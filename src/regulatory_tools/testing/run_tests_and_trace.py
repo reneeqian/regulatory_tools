@@ -9,7 +9,7 @@ from .pytest_runner import run_pytest_with_coverage
 _GRADE_ORDER: dict[str, int] = {"A": 4, "B": 3, "C": 2, "D": 1, "F": 0}
 
 
-def run_tests_and_trace(project_root: Path, min_grade: str | None = "B") -> None:
+def run_tests_and_trace(project_root: Path, min_grade: str | None = "B", *, update_readme: bool = True) -> None:
     """
     Full verification pipeline for regulated projects.
 
@@ -30,8 +30,11 @@ def run_tests_and_trace(project_root: Path, min_grade: str | None = "B") -> None
         print("[run_tests_and_trace] forge not installed — skipping grade check and README update.")
         return
 
-    from ..quality.forge_integration import update_readme_forge_health
-    update_readme_forge_health(project_root, forge_summary)
+    from ..quality.forge_integration import update_readme_forge_health, write_forge_health_to_summary
+    if update_readme:
+        update_readme_forge_health(project_root, forge_summary)
+    else:
+        write_forge_health_to_summary(forge_summary)
 
     grade = forge_summary.get("grade", "N/A")
     score = forge_summary.get("overall_score")
