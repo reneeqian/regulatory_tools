@@ -18,6 +18,8 @@ dev = [
     "pytest",
     "pytest-cov",
     "importlib_resources",
+    "radon",
+    "pip-audit",
 ]
 
 [tool.setuptools]
