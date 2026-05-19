@@ -218,7 +218,7 @@ class RegulatoryWebviewProvider {
     if (!fs.existsSync(yamlPath)) return false;
     try {
       const text = fs.readFileSync(yamlPath, 'utf8');
-      return /^\s*id:\s*RSK-\d+/m.test(text);
+      return /id:\s*RSK-\d+/.test(text);
     } catch { return false; }
   }
 
