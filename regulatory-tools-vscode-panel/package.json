@@ -1,0 +1,78 @@
+{
+  "name": "regulatory-panel",
+  "displayName": "Regulatory Panel",
+  "description": "Sidebar dashboard for SaMD regulatory compliance: forge health, traceability coverage, and required artifact completeness.",
+  "version": "0.1.0",
+  "publisher": "reneeqian",
+  "engines": {
+    "vscode": "^1.80.0",
+    "node": ">=18.0.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./src/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "regulatory-container",
+          "title": "Regulatory",
+          "icon": "$(shield)"
+        }
+      ]
+    },
+    "views": {
+      "regulatory-container": [
+        {
+          "type": "webview",
+          "id": "regulatorySidebar",
+          "name": "Regulatory Dashboard"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "regulatory.refresh",
+        "title": "Refresh Regulatory Dashboard",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "regulatory.refresh",
+          "when": "view == regulatorySidebar",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Regulatory Panel",
+      "properties": {
+        "regulatory.forgePath": {
+          "type": "string",
+          "default": "",
+          "description": "Full path to the forge CLI executable. Leave empty to auto-detect (uses forge.forgePath setting if set)."
+        },
+        "regulatory.primaryRepo": {
+          "type": "string",
+          "default": "",
+          "description": "Name of the workspace folder to treat as the primary (regulated) code repo. Auto-selected if only one code repo is detected."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "package": "vsce package",
+    "vsce-ls": "vsce ls",
+    "test": "node test/provider.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reneeqian/regulatory_tools.git",
+    "directory": "regulatory-tools-vscode-panel"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.0.0"
+  }
+}
