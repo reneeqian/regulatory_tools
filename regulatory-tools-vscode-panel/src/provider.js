@@ -34,6 +34,11 @@ class RegulatoryWebviewProvider {
       if (msg.command === 'openExternal') {
         vscode.env.openExternal(vscode.Uri.parse(msg.url));
       }
+      if (msg.command === 'setPrimaryRepo') {
+        const cfg = vscode.workspace.getConfiguration('regulatory');
+        cfg.update('primaryRepo', msg.name ?? '', vscode.ConfigurationTarget.Global)
+          .then(() => this.refresh());
+      }
     });
 
     webviewView.onDidChangeVisibility(() => {
@@ -246,6 +251,10 @@ class RegulatoryWebviewProvider {
         <span class="cfg">Regulatory Dashboard</span>
       </div>
 
+      <div id="reg-ctx-menu" class="reg-ctx-menu" style="display:none">
+        <div class="reg-ctx-item" id="reg-ctx-set-primary"></div>
+      </div>
+
       ${needsPrimaryBanner ? this._noPrimaryBanner(roles.supporting.map(r => r.name)) : ''}
 
       <section>
@@ -269,7 +278,7 @@ class RegulatoryWebviewProvider {
       </section>` : ''}
     `;
 
-    return wrapHtml(body + REG_STYLES);
+    return wrapHtml(body + REG_STYLES + REG_SCRIPTS);
   }
 
   // ── Section builders ──────────────────────────────────────────────────────────
@@ -304,7 +313,9 @@ class RegulatoryWebviewProvider {
         ].filter(Boolean).join(' ');
       }
 
-      return `<tr>
+      const repoType = isDocs ? 'docs' : 'code';
+      const isPrimaryAttr = isDocs ? '' : ` data-is-primary="${isPrimary}"`;
+      return `<tr data-repo-name="${escHtml(repo.name)}" data-repo-type="${repoType}"${isPrimaryAttr}>
         <td class="sum-name">${escHtml(repo.name)}</td>
         <td><span class="reg-role ${roleCls}">${roleLabel}</span></td>
         <td class="sum-grade">${gradeBadge}</td>
@@ -378,6 +389,56 @@ const REG_STYLES = `<style>
 .reg-art-table td { padding: 3px 4px; }
 .reg-art-icon  { width: 20px; text-align: center; }
 .reg-art-label { font-family: monospace; }
+
+/* Context menu */
+.reg-ctx-menu {
+  position: fixed; z-index: 100;
+  background: var(--vscode-menu-background, #252526);
+  border: 1px solid var(--vscode-menu-border, #454545);
+  border-radius: 4px; padding: 2px 0; min-width: 130px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+.reg-ctx-item {
+  padding: 5px 12px; cursor: pointer; font-size: 0.82em;
+  color: var(--vscode-menu-foreground, #ccc);
+}
+.reg-ctx-item:hover {
+  background: var(--vscode-menu-selectionBackground, #094771);
+  color: var(--vscode-menu-selectionForeground, #fff);
+}
 </style>`;
+
+const REG_SCRIPTS = `<script>(function () {
+  const vscode = acquireVsCodeApi();
+  let activeRepo = null;
+
+  const menu   = document.getElementById('reg-ctx-menu');
+  const menuItem = document.getElementById('reg-ctx-set-primary');
+
+  document.addEventListener('contextmenu', e => {
+    if (menu) menu.style.display = 'none';
+    const tr = e.target.closest('tr[data-repo-type="code"]');
+    if (!tr || !menu) return;
+    e.preventDefault();
+    activeRepo = { name: tr.dataset.repoName, isPrimary: tr.dataset.isPrimary === 'true' };
+    menuItem.textContent = activeRepo.isPrimary ? 'Unset Primary' : 'Set as Primary';
+    menu.style.left = e.clientX + 'px';
+    menu.style.top  = e.clientY + 'px';
+    menu.style.display = 'block';
+  });
+
+  document.addEventListener('click', () => {
+    if (menu) menu.style.display = 'none';
+  });
+
+  menuItem?.addEventListener('click', () => {
+    if (!activeRepo) return;
+    vscode.postMessage({
+      command: 'setPrimaryRepo',
+      name: activeRepo.isPrimary ? '' : activeRepo.name,
+    });
+    activeRepo = null;
+  });
+})();</script>`;
 
 module.exports = { RegulatoryWebviewProvider };

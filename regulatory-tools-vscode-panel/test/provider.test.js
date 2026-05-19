@@ -444,6 +444,39 @@ test('renders artifact label', () => {
   assert.ok(html.includes('docs/soup.yaml'), 'should include label text');
 });
 
+// ── _buildProjectOverview — row data attributes (REG-009) ────────────────────
+
+console.log('\n_buildProjectOverview — row data attributes (REG-009)');
+
+test('primary code row has data-repo-name, data-repo-type="code", data-is-primary="true"', () => {
+  const roles = makeRoles('myproject');
+  const html = p._buildProjectOverview(roles, {}, { found: false });
+  assert.ok(html.includes('data-repo-name="myproject"'), 'missing data-repo-name');
+  assert.ok(html.includes('data-repo-type="code"'), 'missing data-repo-type=code');
+  assert.ok(html.includes('data-is-primary="true"'), 'missing data-is-primary=true');
+});
+
+test('supporting code row has data-repo-type="code" and data-is-primary="false"', () => {
+  const roles = makeRoles('main', ['tool']);
+  const html = p._buildProjectOverview(roles, {}, { found: false });
+  assert.ok(html.includes('data-repo-name="tool"'), 'missing data-repo-name for supporting repo');
+  assert.ok(html.includes('data-is-primary="false"'), 'supporting row should have data-is-primary=false');
+});
+
+test('docs row has data-repo-type="docs"', () => {
+  const roles = makeRoles('main', [], ['DHF']);
+  const html = p._buildProjectOverview(roles, {}, { found: false });
+  assert.ok(html.includes('data-repo-name="DHF"'), 'missing data-repo-name for docs repo');
+  assert.ok(html.includes('data-repo-type="docs"'), 'docs row should have data-repo-type=docs');
+});
+
+test('docs row does not have data-is-primary attribute', () => {
+  const roles = makeRoles(null, [], ['DHF']);
+  const html = p._buildProjectOverview(roles, {}, { found: false });
+  const trRow = html.match(/<tr[^>]*data-repo-name="DHF"[^>]*>/)?.[0] ?? '';
+  assert.ok(!trRow.includes('data-is-primary'), 'docs row should not have data-is-primary');
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 console.log(`\n${passed + failed} tests: ${passed} passed, ${failed} failed\n`);

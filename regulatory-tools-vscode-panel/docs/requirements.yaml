@@ -119,3 +119,20 @@ requirements:
     verification: >
       Unit test: _parseRskRequirements() returns true for a fixture YAML containing
       "id: RSK-001" and false for a fixture without any RSK- id.
+
+  - id: REG-009
+    title: Primary Repo Selection via Context Menu
+    description: >
+      The panel shall display a context menu when a user right-clicks a code repo row
+      in the Project Overview table. The menu shall offer "Set as Primary" for
+      non-primary code repos and "Unset Primary" for the currently-designated primary
+      repo. Selecting an item shall write the regulatory.primaryRepo VS Code setting
+      and trigger a dashboard refresh. Docs repo rows shall not show a context menu.
+    rationale: >
+      Avoids requiring the user to navigate to VS Code settings to change the primary
+      repo designation; the primary repo controls which repo's artifact checks and
+      traceability data are surfaced.
+    verification: >
+      Unit test: _buildProjectOverview() rows have data-repo-name, data-repo-type,
+      and data-is-primary attributes with correct values for primary, supporting, and
+      docs repos.
