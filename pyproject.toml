@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 
 dependencies = [
     "pyyaml==6.0.3",
-    "forge-utils @ git+https://github.com/reneeqian/forge.git@main",
+    "forge-utils @ git+https://github.com/reneeqian/forge.git@v0.2.0",
 ]
 
 [project.optional-dependencies]
@@ -18,6 +18,8 @@ dev = [
     "pytest",
     "pytest-cov",
     "importlib_resources",
+    "radon",
+    "pip-audit",
 ]
 
 [tool.setuptools]

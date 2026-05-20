@@ -1,6 +1,6 @@
 name: pip-audit
 
-on:
+"on":
   push:
     branches: [main, dev]
   pull_request:
@@ -9,7 +9,7 @@ on:
     - cron: "0 6 * * 1"
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 permissions:
   contents: read
@@ -29,8 +29,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pip-audit pyyaml
-          pip install "forge-utils @ git+https://github.com/reneeqian/forge.git@main"
+          pip install "forge-utils @ git+https://github.com/reneeqian/forge.git@v0.1.0"
           pip install -e .
 
       - name: Run pip-audit
         run: pip-audit
+
+      - name: Generate SBOM
+        run: pip-audit --format cyclonedx-json --output sbom.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
