@@ -385,36 +385,36 @@ function makeRoles(primaryName, supportingNames = [], docsNames = []) {
 
 test('renders primary role badge', () => {
   const roles = makeRoles('myproject');
-  const html = p._buildProjectOverview(roles, {}, { found: false });
+  const html = p._buildProjectOverview(roles, {}, {});
   assert.ok(html.includes('role-primary'), 'should have primary role class');
   assert.ok(html.includes('primary'), 'should show "primary" label');
 });
 
 test('renders supporting role badge', () => {
   const roles = makeRoles('main', ['tool']);
-  const html = p._buildProjectOverview(roles, {}, { found: false });
+  const html = p._buildProjectOverview(roles, {}, {});
   assert.ok(html.includes('role-supporting'));
 });
 
 test('renders docs role badge', () => {
   const roles = makeRoles('main', [], ['DHF']);
-  const html = p._buildProjectOverview(roles, {}, { found: false });
+  const html = p._buildProjectOverview(roles, {}, {});
   assert.ok(html.includes('role-docs'));
 });
 
 test('shows grade badge when health data present', () => {
   const roles = makeRoles('myproject');
   const healthMap = { myproject: { data: { grade: 'B', overall_score: 0.82 } } };
-  const html = p._buildProjectOverview(roles, healthMap, { found: false });
+  const html = p._buildProjectOverview(roles, healthMap, {});
   assert.ok(html.includes('>B<'), 'grade badge should contain B');
 });
 
-test('shows coverage % from traceability data', () => {
+test('shows coverage % for primary repo from traceMap', () => {
   const roles = makeRoles('myproject');
-  const traceData = { found: true, coveragePct: 94.7, coveredCount: 18, totalCount: 19,
-                      forgeGrade: 'A', forgeScore: 91.5,
-                      statusCounts: { PASS: 10, LINKED: 8, FAIL: 0, UNTESTED: 1 } };
-  const html = p._buildProjectOverview(roles, {}, traceData);
+  const td = { found: true, coveragePct: 94.7, coveredCount: 18, totalCount: 19,
+               forgeGrade: 'A', forgeScore: 91.5,
+               statusCounts: { PASS: 10, LINKED: 8, FAIL: 0, UNTESTED: 1 } };
+  const html = p._buildProjectOverview(roles, {}, { myproject: td });
   assert.ok(html.includes('95%'), 'should show rounded coverage percentage');
   assert.ok(html.includes('10 PASS'), 'should show PASS count');
   assert.ok(html.includes('8 LINKED'), 'should show LINKED count');
@@ -450,7 +450,7 @@ console.log('\n_buildProjectOverview — row data attributes (REG-009)');
 
 test('primary code row has data-repo-name, data-repo-type="code", data-is-primary="true"', () => {
   const roles = makeRoles('myproject');
-  const html = p._buildProjectOverview(roles, {}, { found: false });
+  const html = p._buildProjectOverview(roles, {}, {});
   assert.ok(html.includes('data-repo-name="myproject"'), 'missing data-repo-name');
   assert.ok(html.includes('data-repo-type="code"'), 'missing data-repo-type=code');
   assert.ok(html.includes('data-is-primary="true"'), 'missing data-is-primary=true');
@@ -458,23 +458,53 @@ test('primary code row has data-repo-name, data-repo-type="code", data-is-primar
 
 test('supporting code row has data-repo-type="code" and data-is-primary="false"', () => {
   const roles = makeRoles('main', ['tool']);
-  const html = p._buildProjectOverview(roles, {}, { found: false });
+  const html = p._buildProjectOverview(roles, {}, {});
   assert.ok(html.includes('data-repo-name="tool"'), 'missing data-repo-name for supporting repo');
   assert.ok(html.includes('data-is-primary="false"'), 'supporting row should have data-is-primary=false');
 });
 
 test('docs row has data-repo-type="docs"', () => {
   const roles = makeRoles('main', [], ['DHF']);
-  const html = p._buildProjectOverview(roles, {}, { found: false });
+  const html = p._buildProjectOverview(roles, {}, {});
   assert.ok(html.includes('data-repo-name="DHF"'), 'missing data-repo-name for docs repo');
   assert.ok(html.includes('data-repo-type="docs"'), 'docs row should have data-repo-type=docs');
 });
 
 test('docs row does not have data-is-primary attribute', () => {
   const roles = makeRoles(null, [], ['DHF']);
-  const html = p._buildProjectOverview(roles, {}, { found: false });
+  const html = p._buildProjectOverview(roles, {}, {});
   const trRow = html.match(/<tr[^>]*data-repo-name="DHF"[^>]*>/)?.[0] ?? '';
   assert.ok(!trRow.includes('data-is-primary'), 'docs row should not have data-is-primary');
+});
+
+// ── _buildProjectOverview — supporting repo traceability (REG-010) ─────────────
+
+console.log('\n_buildProjectOverview — supporting repo traceability (REG-010)');
+
+test('shows req cov and status for supporting repo when traceMap has its data', () => {
+  const roles = makeRoles('primary_repo', ['toolkit']);
+  const traceMap = {
+    primary_repo: { found: false },
+    toolkit: {
+      found: true, coveragePct: 91.5, coveredCount: 45, totalCount: 45,
+      forgeGrade: 'A', forgeScore: 91.6,
+      statusCounts: { PASS: 4, LINKED: 41, FAIL: 0, UNTESTED: 0 },
+    },
+  };
+  const html = p._buildProjectOverview(roles, {}, traceMap);
+  assert.ok(html.includes('92%'), 'should show supporting repo coverage %');
+  assert.ok(html.includes('4 PASS'), 'should show supporting repo PASS count');
+  assert.ok(html.includes('41 LINKED'), 'should show supporting repo LINKED count');
+});
+
+test('supporting repo row shows — when not in traceMap', () => {
+  const roles = makeRoles('primary_repo', ['toolkit']);
+  const html = p._buildProjectOverview(roles, {}, {});
+  const toolkitRow = html.match(/<tr[^>]*data-repo-name="toolkit"[^>]*>[\s\S]*?<\/tr>/)?.[0] ?? '';
+  const cells = toolkitRow.split('</td>').map(s => s.replace(/<[^>]+>/g, '').trim());
+  // Req Cov cell (4th column, index 3) should be '—' when no trace data
+  assert.ok(toolkitRow.length > 0, 'toolkit row should exist');
+  assert.ok(toolkitRow.includes('>—<'), 'req cov cell should be — when no trace data');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────
