@@ -123,8 +123,11 @@ class RegulatoryWebviewProvider {
 
     const primaryPath = roles.primary?.local_path ?? null;
 
-    // Synchronous artifact checks (no subprocess) run immediately.
-    const traceData = primaryPath ? this._parseTraceabilityMatrix(primaryPath) : { found: false };
+    // Parse traceability for every code repo so supporting repos also show req coverage.
+    const traceMap = {};
+    for (const repo of codeRepos) {
+      traceMap[repo.name] = this._parseTraceabilityMatrix(repo.local_path);
+    }
     const artifactCheck = primaryPath ? this._checkRequiredArtifacts(primaryPath) : null;
 
     // Async health + meta in parallel.
@@ -152,7 +155,7 @@ class RegulatoryWebviewProvider {
     const healthMap = {};
     for (const r of healthArr) healthMap[r.name] = { ...r, pythonInfo: repoPythonInfo[r.name] };
 
-    const html = this._buildDashboard(roles, healthMap, metaMap, codeRepos, condaEnvs, traceData, artifactCheck);
+    const html = this._buildDashboard(roles, healthMap, metaMap, codeRepos, condaEnvs, traceMap, artifactCheck);
     this._cachedHtml = html;
     if (this._view) this._view.webview.html = html;
   }
@@ -240,7 +243,7 @@ class RegulatoryWebviewProvider {
 
   // ── Dashboard assembly ────────────────────────────────────────────────────────
 
-  _buildDashboard(roles, healthMap, metaMap, codeRepos, condaEnvs, traceData, artifactCheck) {
+  _buildDashboard(roles, healthMap, metaMap, codeRepos, condaEnvs, traceMap, artifactCheck) {
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     const needsPrimaryBanner = !roles.primary && roles.supporting.length > 0;
@@ -259,7 +262,7 @@ class RegulatoryWebviewProvider {
 
       <section>
         <div class="section-title">Project Overview</div>
-        ${this._buildProjectOverview(roles, healthMap, traceData)}
+        ${this._buildProjectOverview(roles, healthMap, traceMap)}
       </section>
 
       ${codeRepos.length ? `<section>
@@ -283,7 +286,7 @@ class RegulatoryWebviewProvider {
 
   // ── Section builders ──────────────────────────────────────────────────────────
 
-  _buildProjectOverview(roles, healthMap, traceData) {
+  _buildProjectOverview(roles, healthMap, traceMap) {
     const allRepos = roles.all;
     const rows = allRepos.map(repo => {
       const isPrimary   = repo === roles.primary;
@@ -301,9 +304,10 @@ class RegulatoryWebviewProvider {
         : '—';
 
       let covCell = '—', statusCell = '—';
-      if (isPrimary && traceData.found) {
-        const pct = traceData.coveragePct != null ? `${traceData.coveragePct.toFixed(0)}%` : '—';
-        const sc = traceData.statusCounts;
+      const repoTrace = (isPrimary || isSupporting) ? (traceMap[repo.name] ?? { found: false }) : { found: false };
+      if (repoTrace.found) {
+        const pct = repoTrace.coveragePct != null ? `${repoTrace.coveragePct.toFixed(0)}%` : '—';
+        const sc = repoTrace.statusCounts;
         covCell = pct;
         statusCell = [
           sc.PASS   ? `<span class="reg-pass">${sc.PASS} PASS</span>`     : '',
