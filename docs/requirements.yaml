@@ -129,6 +129,83 @@ requirements:
       identical inputs shall be identical across executions.
 
   # ==============================
+  # DHF Generation Requirements
+  # ==============================
+
+  - id: DHF-001
+    title: Requirements Schema Supports Typed Requirements
+    description: >
+      The requirements.yaml schema shall support an optional `type` field
+      (user_need | system_requirement | design_requirement | risk_control)
+      and an optional `derived_from` field (list of requirement IDs).
+      Entries without `type` shall be treated as system_requirement.
+
+  - id: DHF-002
+    title: DHF Placeholder Substitution
+    description: >
+      The system shall substitute known {{PLACEHOLDER}} values in DHF markdown
+      documents from a project context config, leave unknown placeholders
+      unchanged, and report a list of unfilled placeholder names.
+
+  - id: DHF-003
+    title: Auto-Populated Document Generation
+    description: >
+      The system shall generate content for all Auto-level DHF documents:
+      system_requirements, traceability_index, soup_register, evidence_index,
+      baseline_register, and change_log.
+
+  - id: DHF-004
+    title: Partial-Populated Document Generation
+    description: >
+      The system shall generate RSK-requirement scaffolding rows for
+      risk_control_measures.md and residual_risk_evaluation.md, leaving
+      narrative columns empty for manual completion.
+
+  - id: DHF-005
+    title: DHF Section Scaffolding
+    description: >
+      The system shall copy missing DHF sections from a templates directory
+      into the DHF repo and run placeholder substitution on the copied files,
+      leaving existing sections untouched.
+
+  - id: DHF-006
+    title: DHF Generation Idempotency
+    description: >
+      Running DHFGenerator.run_all() twice on the same inputs shall produce
+      identical output on the second run (no spurious git diffs).
+
+  - id: DHF-007
+    title: Requirements Traceability Through Derived Links
+    description: >
+      The system shall be able to enumerate, for a given user_need requirement
+      ID, all system_requirements derived from it and all tests that verify
+      those requirements.
+
+  - id: DHF-008
+    title: System Requirements Summary Generation
+    description: >
+      The system shall generate a requirements summary table from
+      requirements.yaml, showing count and types of requirements per domain
+      prefix.
+
+  - id: DHF-009
+    title: Input Contract Validation
+    description: >
+      Before any generation, the system shall validate that all input files
+      (requirements.yaml, soup.yaml, dhf_context.yaml, evidence_runs directory)
+      are present, parseable, and schema-correct. It shall raise a typed
+      DHFValidationError with a structured message identifying every violation
+      found. The generator shall not proceed past this step if any check fails.
+
+  - id: DHF-010
+    title: Stale Filled-Value Detection and Update
+    description: >
+      Values previously auto-filled by the generator shall be wrapped in HTML
+      sentinel comments so that a subsequent run can find and overwrite them
+      when the source value changes, without overwriting values that were filled
+      manually (no sentinel wrapper).
+
+  # ==============================
   # Risk Requirements
   # ==============================
 
