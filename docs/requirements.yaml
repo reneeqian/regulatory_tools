@@ -221,21 +221,37 @@ requirements:
       DHFValidationError; a user_need with no derived_from passes.
 
   - id: DHF-012
-    title: Source File Visibility in RTM and Requirements Summary
+    title: Full Traceability Columns in RTM and Requirements Summary
     description: >
       Each Requirement object shall carry a source_file field (filename stem of
-      the file it was loaded from). The traceability matrix shall include a Source
-      column and the system_requirements summary shall include a By Source File
-      table so reviewers can distinguish SRS from SDS verification rows without
-      cross-referencing a separate key.
+      the file it was loaded from). The traceability matrix shall include the
+      following columns: Requirement ID, Source, Title, Derived From
+      (comma-separated parent IDs from the derived_from field), Design Spec
+      (comma-separated IDs of design requirements whose derived_from contains
+      this requirement's ID), Risk Ref (comma-separated IDs of risk controls
+      whose derived_from contains this requirement's ID), Verification Method
+      (the verification_method field value — T/I/A/D — or blank if absent),
+      Safety Relevant (Yes or blank from the safety_relevant boolean field),
+      Linked Tests, Evidence Artifacts, and Status. The system_requirements
+      summary shall include a By Source File table so reviewers can distinguish
+      SRS from SDS verification rows without cross-referencing a separate key.
     rationale: >
-      After the requirements file split, a reviewer scanning the RTM must be able
-      to identify whether a row is SRS verification (IEC 62304 §5.2) or SDS
-      verification (§5.4) without needing to know the type-to-file convention.
+      IEC 62304 §5.5.5 and §8.1.3 require a complete vertical trace chain.
+      Derived From allows upward navigation to parent requirements; Design Spec
+      and Risk Ref allow downward navigation to the design and risk layers.
+      Verification Method satisfies IEC 62304 §5.7 (distinguish test, inspection,
+      analysis, demonstration). Safety Relevant flags requirements affecting patient
+      safety, supporting risk-proportionate V&V depth. Together these columns make
+      the RTM a self-contained 510(k) trace artifact without requiring a reviewer
+      to cross-reference separate documents.
     verification: >
       Unit tests: RequirementsReader sets source_file to path stem for each
-      Requirement; SystemRequirementsGenerator output contains "By Source File"
-      table; traceability matrix write_markdown includes Source column.
+      Requirement; load_requirements stores derived_from, verification_method,
+      and safety_relevant per requirement; build_trace_matrix rows include
+      design_refs and risk_refs computed by reverse derived_from lookup;
+      write_markdown output includes all column headers (Source, Derived From,
+      Design Spec, Risk Ref, Verification Method, Safety Relevant);
+      SystemRequirementsGenerator output contains "By Source File" table.
 
   - id: DHF-013
     title: Per-File Prefix and Type Constraint Validation

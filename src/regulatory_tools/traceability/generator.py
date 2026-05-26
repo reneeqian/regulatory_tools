@@ -48,9 +48,9 @@ def _extract_requirement_ids(record: dict[str, Any]) -> list[str]:
     return _extract_requirement_ids_from_issues(record)
 
 
-def load_requirements(requirements_yaml: Path | list[Path]) -> dict[str, dict[str, str]]:
+def load_requirements(requirements_yaml: Path | list[Path]) -> dict[str, dict]:
     paths = requirements_yaml if isinstance(requirements_yaml, list) else [requirements_yaml]
-    requirements: dict[str, dict[str, str]] = {}
+    requirements: dict[str, dict] = {}
     for path in paths:
         with path.open() as f:
             data = yaml.safe_load(f)
@@ -59,6 +59,9 @@ def load_requirements(requirements_yaml: Path | list[Path]) -> dict[str, dict[st
             requirements[r["id"]] = {
                 "title": r.get("title", ""),
                 "source_file": source_file,
+                "derived_from": r.get("derived_from") or [],
+                "verification_method": r.get("verification_method") or "",
+                "safety_relevant": bool(r.get("safety_relevant", False)),
             }
     return requirements
 
@@ -69,6 +72,19 @@ def build_trace_matrix(
 ) -> list[dict[str, Any]]:
 
     requirements = load_requirements(requirements_yaml)
+
+    # Reverse maps: req_id → sorted list of design/risk req IDs that derive from it
+    reverse_design_map: dict[str, list[str]] = {}
+    reverse_risk_map: dict[str, list[str]] = {}
+    for rid, meta in requirements.items():
+        if meta.get("source_file") == "design":
+            target = reverse_design_map
+        elif meta.get("source_file") == "risk_controls":
+            target = reverse_risk_map
+        else:
+            continue
+        for parent in meta.get("derived_from", []):
+            target.setdefault(parent, []).append(rid)
 
     try:
         evidence = load_latest_evidence(evidence_root)
@@ -105,6 +121,11 @@ def build_trace_matrix(
                 "requirement_id": req_id,
                 "title": meta["title"],
                 "source_file": meta.get("source_file", ""),
+                "derived_from": ", ".join(meta.get("derived_from", [])),
+                "design_refs": ", ".join(sorted(reverse_design_map.get(req_id, []))),
+                "risk_refs": ", ".join(sorted(reverse_risk_map.get(req_id, []))),
+                "verification_method": meta.get("verification_method", ""),
+                "safety_relevant": "Yes" if meta.get("safety_relevant") else "",
                 "tests": ", ".join(filter(None, tests)),
                 "evidence_files": ", ".join(filter(None, files)),
                 "status": status,
@@ -217,10 +238,14 @@ def write_markdown(
         # ---------------------------------------------------------
 
         f.write(
-            "| Requirement ID | Source | Title | Linked Tests | Evidence Artifacts | Status |\n"
+            "| Requirement ID | Source | Title | Derived From | Design Spec"
+            " | Risk Ref | Verification Method | Safety Relevant"
+            " | Linked Tests | Evidence Artifacts | Status |\n"
         )
         f.write(
-            "|----------------|--------|-------------|--------------|--------------------|--------|\n"
+            "|----------------|--------|-------|--------------|------------"
+            "|----------|---------------------|----------------"
+            "|--------------|--------------------|--------|\n"
         )
 
         for row in matrix:
@@ -229,6 +254,11 @@ def write_markdown(
                 f"| {_sanitize_cell(row['requirement_id'])} "
                 f"| {_sanitize_cell(row.get('source_file', ''))} "
                 f"| {_sanitize_cell(row['title'])} "
+                f"| {_sanitize_cell(row.get('derived_from', ''))} "
+                f"| {_sanitize_cell(row.get('design_refs', ''))} "
+                f"| {_sanitize_cell(row.get('risk_refs', ''))} "
+                f"| {_sanitize_cell(row.get('verification_method', ''))} "
+                f"| {_sanitize_cell(row.get('safety_relevant', ''))} "
                 f"| {_sanitize_cell(row['tests'])} "
                 f"| {_sanitize_cell(row['evidence_files'])} "
                 f"| {_sanitize_cell(row['status'])} |\n"

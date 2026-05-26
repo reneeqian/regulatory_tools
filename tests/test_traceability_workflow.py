@@ -7,6 +7,7 @@ import sys
 
 from regulatory_tools.traceability.generator import (
     build_trace_matrix,
+    load_requirements,
     write_markdown,
 )
 from regulatory_tools.traceability.validate_traceability import (
@@ -498,3 +499,112 @@ def test_build_trace_matrix_row_has_source_file_field(tmp_path):
     assert len(matrix) == 1
     assert "source_file" in matrix[0], "Expected 'source_file' key in matrix row dict"
     assert matrix[0]["source_file"] == "requirements"
+
+
+# ---------------------------------------------------------------------------
+# DHF-012 — Extended traceability columns (Derived From, Design Spec,
+#           Risk Ref, Verification Method, Safety Relevant)
+# ---------------------------------------------------------------------------
+
+_EXTENDED_REQ_YAML = """\
+requirements:
+  - id: SYS-001
+    title: A system req
+    derived_from: [UN-001]
+    verification_method: T
+    safety_relevant: true
+  - id: SYS-002
+    title: Another req
+"""
+
+_DESIGN_YAML = """\
+requirements:
+  - id: DES-001
+    title: A design req
+    derived_from: [SYS-001]
+"""
+
+_RISK_YAML = """\
+requirements:
+  - id: RSK-001
+    title: A risk control
+    derived_from: [SYS-001]
+"""
+
+
+@pytest.mark.requirement("DHF-012")
+def test_load_requirements_stores_extended_fields(tmp_path):
+    """load_requirements stores derived_from, verification_method, safety_relevant; defaults when absent."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_EXTENDED_REQ_YAML)
+
+    reqs = load_requirements(req_yaml)
+
+    assert reqs["SYS-001"]["derived_from"] == ["UN-001"]
+    assert reqs["SYS-001"]["verification_method"] == "T"
+    assert reqs["SYS-001"]["safety_relevant"] is True
+    assert reqs["SYS-002"]["derived_from"] == []
+    assert reqs["SYS-002"]["verification_method"] == ""
+    assert reqs["SYS-002"]["safety_relevant"] is False
+
+
+@pytest.mark.requirement("DHF-012")
+def test_build_trace_matrix_includes_extended_columns(tmp_path):
+    """Matrix rows include derived_from, design_refs, risk_refs, verification_method, safety_relevant."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_EXTENDED_REQ_YAML)
+    design_yaml = tmp_path / "design.yaml"
+    design_yaml.write_text(_DESIGN_YAML)
+    risk_yaml = tmp_path / "risk_controls.yaml"
+    risk_yaml.write_text(_RISK_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+
+    matrix = build_trace_matrix(
+        requirements_yaml=[req_yaml, design_yaml, risk_yaml],
+        evidence_root=evidence_root,
+    )
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    sys001 = by_id["SYS-001"]
+    assert sys001["derived_from"] == "UN-001"
+    assert sys001["design_refs"] == "DES-001"
+    assert sys001["risk_refs"] == "RSK-001"
+    assert sys001["verification_method"] == "T"
+    assert sys001["safety_relevant"] == "Yes"
+
+    des001 = by_id["DES-001"]
+    assert des001["derived_from"] == "SYS-001"
+    assert des001["design_refs"] == ""
+    assert des001["risk_refs"] == ""
+
+
+@pytest.mark.requirement("DHF-012")
+def test_write_markdown_includes_extended_column_headers(tmp_path):
+    """write_markdown output contains all extended column headers and their values."""
+    matrix = [{
+        "requirement_id": "SYS-001",
+        "title": "A req",
+        "source_file": "requirements",
+        "tests": "",
+        "evidence_files": "",
+        "status": "UNTESTED",
+        "derived_from": "UN-001",
+        "design_refs": "DES-001",
+        "risk_refs": "RSK-001",
+        "verification_method": "T",
+        "safety_relevant": "Yes",
+    }]
+    output = tmp_path / "rtm.md"
+    write_markdown(matrix, output)
+    text = output.read_text()
+
+    assert "Derived From" in text
+    assert "Design Spec" in text
+    assert "Risk Ref" in text
+    assert "Verification Method" in text
+    assert "Safety Relevant" in text
+    assert "UN-001" in text
+    assert "DES-001" in text
+    assert "RSK-001" in text
+    assert "Yes" in text
