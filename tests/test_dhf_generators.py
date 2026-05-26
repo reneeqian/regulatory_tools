@@ -23,6 +23,7 @@ from regulatory_tools.dhf.generators.system_requirements import SystemRequiremen
 from regulatory_tools.dhf.generators.traceability_index import TraceabilityIndexGenerator
 from regulatory_tools.dhf.generators.baseline_register import BaselineRegisterGenerator
 from regulatory_tools.dhf.generators.change_log import ChangeLogGenerator
+from regulatory_tools.dhf.generators.hazard_analysis import HazardAnalysisGenerator
 from regulatory_tools.dhf.requirements_reader import RequirementsReader
 
 
@@ -234,6 +235,60 @@ def test_system_requirements_counts_are_correct(tmp_path, evidence_output_dir):
     assert not report.has_errors, report.summary()
 
 
+SPLIT_SRS_YAML = textwrap.dedent("""\
+    metadata:
+      project: test
+      file_role: system_requirements
+      allowed_prefixes: [SYS]
+      allowed_types: [system_requirement]
+    requirements:
+      - id: SYS-001
+        title: System req 1
+        description: System req.
+        derived_from: [UN-001]
+      - id: SYS-002
+        title: System req 2
+        description: Another system req.
+        derived_from: [UN-001]
+""")
+
+SPLIT_DESIGN_YAML = textwrap.dedent("""\
+    metadata:
+      project: test
+      file_role: design_requirements
+      allowed_prefixes: [SYS]
+      allowed_types: [design_requirement]
+    requirements:
+      - id: SYS-099
+        type: design_requirement
+        title: Design detail
+        description: Design spec.
+        derived_from: [SYS-001]
+""")
+
+
+@pytest.mark.requirement("DHF-012")
+def test_system_requirements_by_source_file_table(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-012: SystemRequirementsGenerator output includes 'By Source File' table when loaded from multiple files")
+
+    srs = tmp_path / "requirements.yaml"
+    srs.write_text(SPLIT_SRS_YAML)
+    design = tmp_path / "design.yaml"
+    design.write_text(SPLIT_DESIGN_YAML)
+
+    gen = SystemRequirementsGenerator(RequirementsReader([srs, design]))
+    rows = gen.generate_rows()
+
+    assert "By Source File" in rows or "source file" in rows.lower(), \
+        "Expected 'By Source File' section in generated rows"
+    assert "requirements" in rows
+    assert "design" in rows
+
+    report.info("'By Source File' table present with 'requirements' and 'design' rows", "DHF-012")
+    report.auto_save("dhf012_by_source_file_table", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
 # ---------------------------------------------------------------------------
 # TraceabilityIndexGenerator
 # ---------------------------------------------------------------------------
@@ -378,6 +433,91 @@ def test_soup_table_update_document_is_idempotent(tmp_path, evidence_output_dir)
 
     report.info("Two update_document() calls with same soup.yaml produce identical file", "DHF-006")
     report.auto_save("dhf006_soup_table_idempotent", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+# ---------------------------------------------------------------------------
+# HazardAnalysisGenerator
+# ---------------------------------------------------------------------------
+
+HAZARD_YAML = textwrap.dedent("""\
+    hazards:
+      - id: HAZ-001
+        hazard: Test hazard A
+        mitigation_ref: RSK-001
+      - id: HAZ-002
+        hazard: Test hazard B
+        mitigation_ref: RSK-002
+""")
+
+
+@pytest.mark.requirement("DHF-014")
+def test_hazard_analysis_scaffold_rows(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-014: HazardAnalysisGenerator produces scaffold rows with FILL placeholders")
+
+    hazard_file = tmp_path / "hazard_analysis.yaml"
+    hazard_file.write_text(HAZARD_YAML)
+
+    gen = HazardAnalysisGenerator(hazard_file)
+    rows = gen.generate_rows()
+
+    assert "HAZ-001" in rows
+    assert "HAZ-002" in rows
+    assert "RSK-001" in rows
+    assert "RSK-002" in rows
+    assert "<!-- FILL -->" in rows, "cause/effect/severity/probability must be left as FILL placeholders"
+    assert "Test hazard A" in rows
+    assert "Test hazard B" in rows
+
+    report.info(
+        f"generate_rows() produced 2 scaffold rows; HAZ-IDs, hazard titles, and mitigation_refs "
+        f"are populated; narrative columns contain <!-- FILL -->",
+        "DHF-014",
+    )
+    report.auto_save("dhf014_hazard_analysis_scaffold_rows", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-014")
+def test_hazard_analysis_update_document_replaces_sentinel(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-014: HazardAnalysisGenerator.update_document() replaces sentinel section")
+
+    hazard_file = tmp_path / "hazard_analysis.yaml"
+    hazard_file.write_text(HAZARD_YAML)
+    doc = tmp_path / "hazard_analysis.md"
+    doc.write_text(_doc_with_sentinels("HAZARD_ANALYSIS", "| stale | rows |\n"))
+
+    HazardAnalysisGenerator(hazard_file).update_document(doc)
+
+    content = doc.read_text()
+    assert "HAZ-001" in content
+    assert "stale | rows" not in content
+
+    report.info("update_document replaced sentinel section with current hazard scaffold rows", "DHF-014")
+    report.auto_save("dhf014_hazard_analysis_update_document", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-006")
+def test_hazard_analysis_update_document_is_idempotent(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-006: HazardAnalysisGenerator.update_document() is idempotent")
+
+    hazard_file = tmp_path / "hazard_analysis.yaml"
+    hazard_file.write_text(HAZARD_YAML)
+    doc = tmp_path / "hazard_analysis.md"
+    doc.write_text(_doc_with_sentinels("HAZARD_ANALYSIS"))
+
+    gen = HazardAnalysisGenerator(hazard_file)
+    gen.update_document(doc)
+    first = doc.read_text()
+
+    gen.update_document(doc)
+    second = doc.read_text()
+
+    assert first == second
+
+    report.info("Two update_document() calls with same hazard_analysis.yaml produce identical file", "DHF-006")
+    report.auto_save("dhf006_hazard_analysis_idempotent", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 

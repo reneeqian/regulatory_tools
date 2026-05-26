@@ -5,12 +5,20 @@ These tests must fail before DHFGenerator exists.
 import json
 import textwrap
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.dhf.generator import DHFGenerator, DHFGenerationReport
 from regulatory_tools.dhf.validator import DHFValidationError
+
+
+def _mock_proc(stdout: str) -> MagicMock:
+    m = MagicMock()
+    m.stdout = stdout
+    m.returncode = 0
+    return m
 
 
 # ---------------------------------------------------------------------------
@@ -210,6 +218,74 @@ def test_generator_raises_on_invalid_context(tmp_path, evidence_output_dir):
 
     report.info("DHFGenerator.from_config raised DHFValidationError on incomplete context", "DHF-009")
     report.auto_save("dhf009_generator_raises_on_invalid_context", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-003")
+def test_generator_run_all_updates_baseline_register(tmp_path, evidence_output_dir):
+    report = EvidenceReport(
+        subject="DHF-003: DHFGenerator.run_all() populates BASELINE_REGISTER sentinel section when git tags exist"
+    )
+
+    dhf_root, ctx_path = _make_dhf_tree(tmp_path)
+    (dhf_root / "07_cm").mkdir()
+    baseline_doc = dhf_root / "07_cm" / "baseline_register.md"
+    baseline_doc.write_text(
+        "# Baseline Register\n\n"
+        "<!-- DHF_BASELINE_REGISTER_START -->\n"
+        "<!-- DHF_BASELINE_REGISTER_END -->\n"
+    )
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.side_effect = [
+            _mock_proc("v1.0.0\n"),
+            _mock_proc("abc1234def56\n"),
+            _mock_proc("2026-05-01 10:00:00 +0000\n"),
+        ]
+        gen = DHFGenerator.from_config(dhf_root=dhf_root, context_file=ctx_path)
+        gen.run_all()
+
+    content = baseline_doc.read_text()
+    assert "v1.0.0" in content
+    assert "abc1234" in content
+
+    report.info("run_all() populated BASELINE_REGISTER sentinel section with v1.0.0 tag", "DHF-003")
+    report.auto_save("dhf003_generator_updates_baseline_register", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-003")
+def test_generator_run_all_updates_change_log(tmp_path, evidence_output_dir):
+    report = EvidenceReport(
+        subject="DHF-003: DHFGenerator.run_all() populates CHANGE_LOG sentinel section when git log has commits"
+    )
+
+    dhf_root, ctx_path = _make_dhf_tree(tmp_path)
+
+    # ChangeLogGenerator reads pyproject.toml from git_repo (tmp_path / "repo")
+    git_repo = tmp_path / "repo"
+    (git_repo / "pyproject.toml").write_text(
+        '[project]\nname = "coronary_prj"\nversion = "0.3.0"\n'
+    )
+
+    (dhf_root / "09_cc").mkdir()
+    changelog_doc = dhf_root / "09_cc" / "change_log.md"
+    changelog_doc.write_text(
+        "# Change Log\n\n"
+        "<!-- DHF_CHANGE_LOG_START -->\n"
+        "<!-- DHF_CHANGE_LOG_END -->\n"
+    )
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = _mock_proc("abc1234 feat: add calcium score regressor\n")
+        gen = DHFGenerator.from_config(dhf_root=dhf_root, context_file=ctx_path)
+        gen.run_all()
+
+    content = changelog_doc.read_text()
+    assert "0.3.0" in content or "calcium score" in content
+
+    report.info("run_all() populated CHANGE_LOG sentinel section from git log output", "DHF-003")
+    report.auto_save("dhf003_generator_updates_change_log", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 

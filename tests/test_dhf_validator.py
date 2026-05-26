@@ -200,3 +200,197 @@ def test_validator_raises_when_requirements_yaml_has_duplicate_ids(tmp_path, evi
     report.info(f"Duplicate SYS-001 raised DHFValidationError", "DHF-009")
     report.auto_save("dhf009_validator_duplicate_ids", evidence_output_dir)
     assert not report.has_errors, report.summary()
+
+
+# ---------------------------------------------------------------------------
+# DHF-011 — derived_from completeness
+# ---------------------------------------------------------------------------
+
+REQS_WITH_ORPHAN = textwrap.dedent("""\
+    metadata:
+      project: test
+      file_role: system_requirements
+      allowed_prefixes: [SYS, UN]
+      allowed_types: [system_requirement, user_need]
+    requirements:
+      - id: UN-001
+        type: user_need
+        title: User need
+        description: A user need.
+      - id: SYS-001
+        title: Orphaned requirement
+        description: No derived_from — should trigger DHF-011.
+""")
+
+REQS_ALL_LINKED = textwrap.dedent("""\
+    metadata:
+      project: test
+      file_role: system_requirements
+      allowed_prefixes: [SYS, UN]
+      allowed_types: [system_requirement, user_need]
+    requirements:
+      - id: UN-001
+        type: user_need
+        title: User need
+        description: A user need.
+      - id: SYS-001
+        title: Linked requirement
+        description: Has a parent.
+        derived_from: [UN-001]
+""")
+
+
+@pytest.mark.requirement("DHF-011")
+def test_validator_raises_on_orphaned_non_user_need(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-011: DHFValidator raises when a non-user_need requirement has no derived_from")
+
+    ctx, _ = _make_valid_setup(tmp_path)
+    Path(ctx.data_sources["requirements"]).write_text(REQS_WITH_ORPHAN)
+
+    with pytest.raises(DHFValidationError) as exc_info:
+        DHFValidator(ctx).validate()
+
+    assert "SYS-001" in str(exc_info.value)
+    assert "derived_from" in str(exc_info.value).lower()
+
+    report.info(f"Orphaned SYS-001 raised DHFValidationError: {exc_info.value}", "DHF-011")
+    report.auto_save("dhf011_orphaned_requirement_raises", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-011")
+def test_validator_passes_when_user_need_has_no_derived_from(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-011: DHFValidator passes when user_need has no derived_from (top of hierarchy)")
+
+    ctx, _ = _make_valid_setup(tmp_path)
+    Path(ctx.data_sources["requirements"]).write_text(REQS_ALL_LINKED)
+
+    DHFValidator(ctx).validate()  # must not raise
+
+    report.info("user_need without derived_from did not raise DHFValidationError", "DHF-011")
+    report.auto_save("dhf011_user_need_no_derived_from_ok", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+# ---------------------------------------------------------------------------
+# DHF-013 — per-file prefix and type constraints
+# ---------------------------------------------------------------------------
+
+REQS_WITH_METADATA = textwrap.dedent("""\
+    metadata:
+      project: test
+      file_role: system_requirements
+      allowed_prefixes: [SYS, DAT]
+      allowed_types: [system_requirement]
+    requirements:
+      - id: SYS-001
+        title: System req
+        description: Fine.
+        derived_from: [UN-001]
+""")
+
+REQS_BAD_PREFIX = textwrap.dedent("""\
+    metadata:
+      project: test
+      file_role: system_requirements
+      allowed_prefixes: [SYS]
+      allowed_types: [system_requirement]
+    requirements:
+      - id: XYZ-001
+        title: Wrong prefix
+        description: Not allowed here.
+        derived_from: [UN-001]
+""")
+
+REQS_BAD_TYPE = textwrap.dedent("""\
+    metadata:
+      project: test
+      file_role: system_requirements
+      allowed_prefixes: [SYS]
+      allowed_types: [system_requirement]
+    requirements:
+      - id: SYS-001
+        type: design_requirement
+        title: Wrong type
+        description: design_requirement not allowed in this file.
+        derived_from: [UN-001]
+""")
+
+REQS_MISSING_FILE_ROLE = textwrap.dedent("""\
+    metadata:
+      project: test
+      allowed_prefixes: [SYS]
+      allowed_types: [system_requirement]
+    requirements:
+      - id: SYS-001
+        title: Has constraints but missing file_role
+        description: Fine.
+        derived_from: [UN-001]
+""")
+
+
+@pytest.mark.requirement("DHF-013")
+def test_validator_passes_with_valid_prefix_and_type(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-013: DHFValidator passes when all ID prefixes and types match metadata constraints")
+
+    ctx, _ = _make_valid_setup(tmp_path)
+    Path(ctx.data_sources["requirements"]).write_text(REQS_WITH_METADATA)
+
+    DHFValidator(ctx).validate()  # must not raise
+
+    report.info("Valid prefix/type combination passed DHFValidator", "DHF-013")
+    report.auto_save("dhf013_valid_prefix_type_passes", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-013")
+def test_validator_raises_on_forbidden_prefix(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-013: DHFValidator raises when requirement ID prefix is not in allowed_prefixes")
+
+    ctx, _ = _make_valid_setup(tmp_path)
+    Path(ctx.data_sources["requirements"]).write_text(REQS_BAD_PREFIX)
+
+    with pytest.raises(DHFValidationError) as exc_info:
+        DHFValidator(ctx).validate()
+
+    error = str(exc_info.value)
+    assert "XYZ-001" in error or "XYZ" in error
+
+    report.info(f"Forbidden prefix XYZ raised DHFValidationError: {exc_info.value}", "DHF-013")
+    report.auto_save("dhf013_forbidden_prefix_raises", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-013")
+def test_validator_raises_on_forbidden_type(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-013: DHFValidator raises when requirement type is not in allowed_types")
+
+    ctx, _ = _make_valid_setup(tmp_path)
+    Path(ctx.data_sources["requirements"]).write_text(REQS_BAD_TYPE)
+
+    with pytest.raises(DHFValidationError) as exc_info:
+        DHFValidator(ctx).validate()
+
+    error = str(exc_info.value)
+    assert "SYS-001" in error or "design_requirement" in error
+
+    report.info(f"Forbidden type raised DHFValidationError: {exc_info.value}", "DHF-013")
+    report.auto_save("dhf013_forbidden_type_raises", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-013")
+def test_validator_raises_when_file_role_missing(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-013: DHFValidator raises when a requirement file has no metadata.file_role")
+
+    ctx, _ = _make_valid_setup(tmp_path)
+    Path(ctx.data_sources["requirements"]).write_text(REQS_MISSING_FILE_ROLE)
+
+    with pytest.raises(DHFValidationError) as exc_info:
+        DHFValidator(ctx).validate()
+
+    assert "file_role" in str(exc_info.value).lower()
+
+    report.info(f"Missing file_role raised DHFValidationError: {exc_info.value}", "DHF-013")
+    report.auto_save("dhf013_missing_file_role_raises", evidence_output_dir)
+    assert not report.has_errors, report.summary()

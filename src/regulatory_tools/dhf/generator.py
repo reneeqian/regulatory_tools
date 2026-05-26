@@ -4,7 +4,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from regulatory_tools.dhf.context import DHFContext
+from regulatory_tools.dhf.generators.baseline_register import BaselineRegisterGenerator
+from regulatory_tools.dhf.generators.change_log import ChangeLogGenerator
 from regulatory_tools.dhf.generators.evidence_index import EvidenceIndexGenerator
+from regulatory_tools.dhf.generators.hazard_analysis import HazardAnalysisGenerator
 from regulatory_tools.dhf.generators.risk_controls import RiskControlsGenerator
 from regulatory_tools.dhf.generators.soup_table import SOUPTableGenerator
 from regulatory_tools.dhf.generators.system_requirements import SystemRequirementsGenerator
@@ -76,9 +79,9 @@ class DHFGenerator:
 
     def update_system_requirements(self) -> DHFGenerationReport:
         report = DHFGenerationReport()
-        reqs_path = self._ctx.data_sources.get("requirements")
-        if reqs_path and reqs_path.exists():
-            reader = RequirementsReader(reqs_path)
+        req_paths = [p for p in self._ctx.requirement_paths if p.exists()]
+        if req_paths:
+            reader = RequirementsReader(req_paths)
             gen = SystemRequirementsGenerator(reader)
             for doc in sorted(self._root.rglob("system_requirements.md")):
                 before = doc.read_text()
@@ -101,9 +104,9 @@ class DHFGenerator:
 
     def update_risk_controls(self) -> DHFGenerationReport:
         report = DHFGenerationReport()
-        reqs_path = self._ctx.data_sources.get("requirements")
-        if reqs_path and reqs_path.exists():
-            reader = RequirementsReader(reqs_path)
+        req_paths = [p for p in self._ctx.requirement_paths if p.exists()]
+        if req_paths:
+            reader = RequirementsReader(req_paths)
             gen = RiskControlsGenerator(reader)
             for doc in sorted(self._root.rglob("risk_control_measures.md")):
                 before = doc.read_text()
@@ -122,6 +125,41 @@ class DHFGenerator:
         report.files_modified = list(created)
         return report
 
+    def update_baseline_register(self) -> DHFGenerationReport:
+        report = DHFGenerationReport()
+        gen = BaselineRegisterGenerator(self._ctx.git_repo)
+        for doc in sorted(self._root.rglob("baseline_register.md")):
+            before = doc.read_text()
+            gen.update_document(doc)
+            if doc.read_text() != before:
+                report.files_modified.append(doc)
+        return report
+
+    def update_change_log(self) -> DHFGenerationReport:
+        report = DHFGenerationReport()
+        pyproject = self._ctx.git_repo / "pyproject.toml"
+        if not pyproject.exists():
+            return report
+        gen = ChangeLogGenerator(git_repo=self._ctx.git_repo, pyproject_toml=pyproject)
+        for doc in sorted(self._root.rglob("change_log.md")):
+            before = doc.read_text()
+            gen.update_document(doc)
+            if doc.read_text() != before:
+                report.files_modified.append(doc)
+        return report
+
+    def update_hazard_analysis(self) -> DHFGenerationReport:
+        report = DHFGenerationReport()
+        hazard_path = self._ctx.data_sources.get("hazard_analysis")
+        if hazard_path and hazard_path.exists():
+            gen = HazardAnalysisGenerator(hazard_path)
+            for doc in sorted(self._root.rglob("hazard_analysis.md")):
+                before = doc.read_text()
+                gen.update_document(doc)
+                if doc.read_text() != before:
+                    report.files_modified.append(doc)
+        return report
+
     def run_all(self) -> DHFGenerationReport:
         combined = DHFGenerationReport()
 
@@ -136,6 +174,9 @@ class DHFGenerator:
         _merge(self.update_system_requirements())
         _merge(self.update_traceability_index())
         _merge(self.update_risk_controls())
+        _merge(self.update_hazard_analysis())
+        _merge(self.update_baseline_register())
+        _merge(self.update_change_log())
         _merge(self.fill_placeholders())
 
         return combined

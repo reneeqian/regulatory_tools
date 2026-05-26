@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -18,9 +19,19 @@ class DHFContext:
     responsible_person: str
     code_repos: list[str]
     author: str
-    data_sources: dict[str, Path]
+    data_sources: dict[str, Any]
     templates_root: Path
     git_repo: Path
+
+    @property
+    def requirement_paths(self) -> list[Path]:
+        """Normalize requirements entry (string or list) to a list of Paths."""
+        r = self.data_sources.get("requirements")
+        if r is None:
+            return []
+        if isinstance(r, list):
+            return [Path(p) for p in r]
+        return [Path(r)]
 
     @staticmethod
     def from_yaml(path: Path) -> "DHFContext":
@@ -44,12 +55,19 @@ class DHFContext:
         if violations:
             raise DHFValidationError(violations)
 
+        data_sources: dict[str, Any] = {}
+        for k, v in ds_raw.items():
+            if k == "requirements" and isinstance(v, list):
+                data_sources[k] = [str(p) for p in v]
+            else:
+                data_sources[k] = Path(v)
+
         return DHFContext(
             project_name=data["project_name"],
             responsible_person=data["responsible_person"],
             code_repos=list(data["code_repos"]),
             author=data["author"],
-            data_sources={k: Path(v) for k, v in ds_raw.items()},
+            data_sources=data_sources,
             templates_root=Path(data["templates_root"]),
             git_repo=Path(data["git_repo"]),
         )

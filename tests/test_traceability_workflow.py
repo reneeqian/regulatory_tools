@@ -446,3 +446,55 @@ requirements:
     )
 
     assert result.returncode == 0
+
+
+# ---------------------------------------------------------------------------
+# DHF-012 — Source column in traceability matrix
+# ---------------------------------------------------------------------------
+
+SOURCE_REQS_YAML = """\
+metadata:
+  project: test
+  file_role: system_requirements
+  allowed_prefixes: [VER]
+  allowed_types: [system_requirement]
+requirements:
+  - id: VER-001
+    title: Verification req
+    description: Something.
+    derived_from: []
+"""
+
+
+@pytest.mark.requirement("DHF-012")
+def test_traceability_matrix_includes_source_column(tmp_path):
+    """write_markdown output includes a Source column showing the origin file stem."""
+
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(SOURCE_REQS_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    output_md = tmp_path / "traceability_matrix.md"
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    write_markdown(matrix, output_md)
+
+    contents = output_md.read_text()
+    assert "Source" in contents, "Expected 'Source' column header in traceability matrix"
+    assert "requirements" in contents, "Expected source_file stem 'requirements' in matrix rows"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_build_trace_matrix_row_has_source_file_field(tmp_path):
+    """Each matrix row includes a source_file key set to the requirements filename stem."""
+
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(SOURCE_REQS_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+
+    assert len(matrix) == 1
+    assert "source_file" in matrix[0], "Expected 'source_file' key in matrix row dict"
+    assert matrix[0]["source_file"] == "requirements"

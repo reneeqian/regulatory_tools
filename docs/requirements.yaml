@@ -205,6 +205,71 @@ requirements:
       when the source value changes, without overwriting values that were filled
       manually (no sentinel wrapper).
 
+  - id: DHF-011
+    title: Derived-From Completeness Enforcement
+    description: >
+      The DHFValidator shall reject any non-user_need requirement that has
+      an empty or absent derived_from field, listing all offending IDs in
+      the DHFValidationError.
+    rationale: >
+      An orphaned requirement (no declared parent) produces a silent gap in the
+      requirements traceability chain. IEC 62304 §5.5.5 requires that every
+      software requirement is traceable to a higher-level source; this validator
+      rule makes that constraint machine-checkable before documents are generated.
+    verification: >
+      Unit tests: a non-user_need requirement with empty derived_from raises
+      DHFValidationError; a user_need with no derived_from passes.
+
+  - id: DHF-012
+    title: Source File Visibility in RTM and Requirements Summary
+    description: >
+      Each Requirement object shall carry a source_file field (filename stem of
+      the file it was loaded from). The traceability matrix shall include a Source
+      column and the system_requirements summary shall include a By Source File
+      table so reviewers can distinguish SRS from SDS verification rows without
+      cross-referencing a separate key.
+    rationale: >
+      After the requirements file split, a reviewer scanning the RTM must be able
+      to identify whether a row is SRS verification (IEC 62304 §5.2) or SDS
+      verification (§5.4) without needing to know the type-to-file convention.
+    verification: >
+      Unit tests: RequirementsReader sets source_file to path stem for each
+      Requirement; SystemRequirementsGenerator output contains "By Source File"
+      table; traceability matrix write_markdown includes Source column.
+
+  - id: DHF-013
+    title: Per-File Prefix and Type Constraint Validation
+    description: >
+      The DHFValidator shall read metadata.allowed_prefixes and
+      metadata.allowed_types from each requirement file and reject any requirement
+      whose ID prefix is not in allowed_prefixes or whose type is not in
+      allowed_types. A missing metadata.file_role field in any requirement file
+      shall also be reported as a violation.
+    rationale: >
+      Without this check, a requirement placed in the wrong file silently routes
+      to the wrong DHF document. The metadata block in each file is the authority
+      for what belongs there; the validator enforces the contract.
+    verification: >
+      Unit tests: ID prefix not in allowed_prefixes raises DHFValidationError;
+      type not in allowed_types raises; missing file_role raises; valid files pass.
+
+  - id: DHF-014
+    title: Hazard Analysis Scaffold Generation
+    description: >
+      The system shall generate scaffold rows for hazard_analysis.md from
+      hazard_analysis.yaml, populating HAZ-ID, hazard title, and mitigation_ref
+      columns. The cause, effect, severity, and probability columns shall be
+      left as <!-- FILL --> for manual completion.
+    rationale: >
+      ISO 14971 §4-5 requires a systematic hazard analysis whose identification
+      step is separate from the risk estimation step. Auto-generating the scaffold
+      ensures the HAZ-ID cross-reference to risk_controls.yaml is always in sync;
+      the narrative columns remain manual because they require domain expertise.
+    verification: >
+      Unit test: hazard_analysis.yaml with 2 HAZ entries produces a table with
+      2 scaffold rows; cause/effect/severity/probability columns contain
+      <!-- FILL -->; mitigation_ref column shows the hazard_ref value.
+
   # ==============================
   # Risk Requirements
   # ==============================

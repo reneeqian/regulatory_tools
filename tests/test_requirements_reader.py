@@ -253,3 +253,125 @@ def test_existing_requirements_yaml_parses_without_error(evidence_output_dir):
     )
     report.auto_save("dhf001_existing_yaml_backward_compat", evidence_output_dir)
     assert not report.has_errors, report.summary()
+
+
+# ---------------------------------------------------------------------------
+# Multi-file loading and source_file field (DHF-012)
+# ---------------------------------------------------------------------------
+
+SRS_YAML = textwrap.dedent("""\
+    metadata:
+      project: test
+      file_role: system_requirements
+      allowed_prefixes: [SYS]
+      allowed_types: [system_requirement]
+      regulatory_role: IEC 62304 §5.2 SRS
+    requirements:
+      - id: SYS-001
+        title: System req
+        description: The system shall do something.
+""")
+
+DESIGN_YAML = textwrap.dedent("""\
+    metadata:
+      project: test
+      file_role: design_requirements
+      allowed_prefixes: [SYS]
+      allowed_types: [design_requirement]
+      regulatory_role: IEC 62304 §5.4 SDS
+    requirements:
+      - id: SYS-099
+        type: design_requirement
+        title: Design detail
+        description: The design shall specify something.
+        derived_from: [SYS-001]
+""")
+
+
+def _write_split_files(tmp_path: Path) -> tuple[Path, Path]:
+    srs = tmp_path / "requirements.yaml"
+    srs.write_text(SRS_YAML)
+    design = tmp_path / "design.yaml"
+    design.write_text(DESIGN_YAML)
+    return srs, design
+
+
+@pytest.mark.requirement("DHF-012")
+def test_multi_file_load_merges_requirements(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-012: RequirementsReader([paths]) merges requirements from multiple files into one namespace")
+
+    srs, design = _write_split_files(tmp_path)
+    reader = RequirementsReader([srs, design])
+    all_ids = {r.id for r in reader.all()}
+
+    assert "SYS-001" in all_ids
+    assert "SYS-099" in all_ids
+    assert len(reader.all()) == 2
+
+    report.info(f"Merged {len(reader.all())} requirements from 2 files: {sorted(all_ids)}", "DHF-012")
+    report.auto_save("dhf012_multi_file_merge", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-012")
+def test_source_file_field_is_set_to_path_stem(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-012: Each Requirement.source_file equals the filename stem of its origin file")
+
+    srs, design = _write_split_files(tmp_path)
+    reader = RequirementsReader([srs, design])
+    by_id = {r.id: r for r in reader.all()}
+
+    assert by_id["SYS-001"].source_file == "requirements", \
+        f"Expected 'requirements', got {by_id['SYS-001'].source_file!r}"
+    assert by_id["SYS-099"].source_file == "design", \
+        f"Expected 'design', got {by_id['SYS-099'].source_file!r}"
+
+    report.info(
+        f"SYS-001.source_file={by_id['SYS-001'].source_file!r}, "
+        f"SYS-099.source_file={by_id['SYS-099'].source_file!r}",
+        "DHF-012",
+    )
+    report.auto_save("dhf012_source_file_stem", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-012")
+def test_single_path_wrapped_in_list_still_works(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-012: RequirementsReader([single_path]) works identically to legacy single-path usage")
+
+    srs, _ = _write_split_files(tmp_path)
+    reader = RequirementsReader([srs])
+    assert len(reader.all()) == 1
+    assert reader.all()[0].id == "SYS-001"
+    assert reader.all()[0].source_file == "requirements"
+
+    report.info("Single path in list loads correctly with source_file set", "DHF-012")
+    report.auto_save("dhf012_single_path_compat", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-012")
+def test_duplicate_id_across_files_raises(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-012: RequirementsReader raises ValueError when duplicate IDs appear across files")
+
+    srs = tmp_path / "requirements.yaml"
+    srs.write_text(SRS_YAML)
+    dup = tmp_path / "other.yaml"
+    dup.write_text(textwrap.dedent("""\
+        metadata:
+          project: test
+          file_role: other
+          allowed_prefixes: [SYS]
+          allowed_types: [system_requirement]
+        requirements:
+          - id: SYS-001
+            title: Duplicate
+            description: Duplicate ID from another file.
+    """))
+
+    with pytest.raises(ValueError, match="SYS-001"):
+        RequirementsReader([srs, dup])
+
+    report.info("Duplicate SYS-001 across two files raised ValueError", "DHF-012")
+    report.auto_save("dhf012_duplicate_id_across_files", evidence_output_dir)
+    assert not report.has_errors, report.summary()

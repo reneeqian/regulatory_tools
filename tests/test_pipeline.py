@@ -106,7 +106,7 @@ def test_run_tests_and_trace_smoke(tmp_path):
     Ensures CLI pipeline executes.
     """
 
-    from regulatory_tools.testing import run_tests_and_trace
+    from regulatory_tools.testing.run_tests_and_trace import run_tests_and_trace
 
     project = tmp_path / "proj"
     project.mkdir()

@@ -46,6 +46,18 @@ class SystemRequirementsGenerator:
         for req_type, count in sorted(type_counts.items()):
             lines.append(f"| {req_type} | {count} |")
 
+        source_counts: Counter[str] = Counter(r.source_file for r in reqs if r.source_file)
+        if source_counts:
+            lines += [
+                "",
+                "### By Source File",
+                "",
+                "| Source File | Count |",
+                "|-------------|-------|",
+            ]
+            for source, count in sorted(source_counts.items()):
+                lines.append(f"| {source} | {count} |")
+
         return "\n".join(lines) + "\n"
 
     def update_document(self, path: Path) -> None:

@@ -48,22 +48,23 @@ def _extract_requirement_ids(record: dict[str, Any]) -> list[str]:
     return _extract_requirement_ids_from_issues(record)
 
 
-def load_requirements(requirements_yaml: Path) -> dict[str, dict[str, str]]:
-    with requirements_yaml.open() as f:
-        data = yaml.safe_load(f)
-
-    requirements = {}
-
-    for r in data.get("requirements", []):
-        requirements[r["id"]] = {
-            "title": r.get("title", ""),
-        }
-
+def load_requirements(requirements_yaml: Path | list[Path]) -> dict[str, dict[str, str]]:
+    paths = requirements_yaml if isinstance(requirements_yaml, list) else [requirements_yaml]
+    requirements: dict[str, dict[str, str]] = {}
+    for path in paths:
+        with path.open() as f:
+            data = yaml.safe_load(f)
+        source_file = path.stem
+        for r in data.get("requirements", []):
+            requirements[r["id"]] = {
+                "title": r.get("title", ""),
+                "source_file": source_file,
+            }
     return requirements
 
 
 def build_trace_matrix(
-    requirements_yaml: Path,
+    requirements_yaml: Path | list[Path],
     evidence_root: Path,
 ) -> list[dict[str, Any]]:
 
@@ -103,6 +104,7 @@ def build_trace_matrix(
             {
                 "requirement_id": req_id,
                 "title": meta["title"],
+                "source_file": meta.get("source_file", ""),
                 "tests": ", ".join(filter(None, tests)),
                 "evidence_files": ", ".join(filter(None, files)),
                 "status": status,
@@ -215,16 +217,17 @@ def write_markdown(
         # ---------------------------------------------------------
 
         f.write(
-            "| Requirement ID | Title | Linked Tests | Evidence Artifacts | Status |\n"
+            "| Requirement ID | Source | Title | Linked Tests | Evidence Artifacts | Status |\n"
         )
         f.write(
-            "|----------------|-------------|--------------|--------------------|--------|\n"
+            "|----------------|--------|-------------|--------------|--------------------|--------|\n"
         )
 
         for row in matrix:
 
             f.write(
                 f"| {_sanitize_cell(row['requirement_id'])} "
+                f"| {_sanitize_cell(row.get('source_file', ''))} "
                 f"| {_sanitize_cell(row['title'])} "
                 f"| {_sanitize_cell(row['tests'])} "
                 f"| {_sanitize_cell(row['evidence_files'])} "
