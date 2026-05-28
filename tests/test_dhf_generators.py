@@ -3,7 +3,6 @@ Tests for regulatory_tools.dhf.generators (DHF-003, DHF-008).
 These tests must fail before the generators exist.
 """
 import json
-import subprocess
 import textwrap
 from pathlib import Path
 from unittest.mock import patch

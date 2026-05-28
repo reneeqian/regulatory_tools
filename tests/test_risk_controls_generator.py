@@ -3,7 +3,6 @@ Tests for regulatory_tools.dhf.generators.risk_controls — RiskControlsGenerato
 These tests must fail before RiskControlsGenerator exists.
 """
 import textwrap
-from pathlib import Path
 
 import pytest
 
