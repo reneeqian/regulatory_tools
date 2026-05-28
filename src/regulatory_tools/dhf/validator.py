@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
-
-from regulatory_tools.dhf.requirements_reader import RequirementsReader, _load_all
+from regulatory_tools.dhf.requirements_reader import _load_all
 
 
 class DHFValidationError(Exception):
