@@ -129,6 +129,193 @@ requirements:
       identical inputs shall be identical across executions.
 
   # ==============================
+  # DHF Generation Requirements
+  # ==============================
+
+  - id: DHF-001
+    title: Requirements Schema Supports Typed Requirements
+    description: >
+      The requirements.yaml schema shall support an optional `type` field
+      (user_need | system_requirement | design_requirement | risk_control)
+      and an optional `derived_from` field (list of requirement IDs).
+      Entries without `type` shall be treated as system_requirement.
+
+  - id: DHF-002
+    title: DHF Placeholder Substitution
+    description: >
+      The system shall substitute known {{PLACEHOLDER}} values in DHF markdown
+      documents from a project context config, leave unknown placeholders
+      unchanged, and report a list of unfilled placeholder names.
+
+  - id: DHF-003
+    title: Auto-Populated Document Generation
+    description: >
+      The system shall generate content for all Auto-level DHF documents:
+      system_requirements, traceability_index, soup_register, evidence_index,
+      baseline_register, and change_log.
+
+  - id: DHF-004
+    title: Partial-Populated Document Generation
+    description: >
+      The system shall generate RSK-requirement scaffolding rows for
+      risk_control_measures.md and residual_risk_evaluation.md, leaving
+      narrative columns empty for manual completion.
+
+  - id: DHF-005
+    title: DHF Section Scaffolding
+    description: >
+      The system shall copy missing DHF sections from a templates directory
+      into the DHF repo and run placeholder substitution on the copied files,
+      leaving existing sections untouched.
+
+  - id: DHF-006
+    title: DHF Generation Idempotency
+    description: >
+      Running DHFGenerator.run_all() twice on the same inputs shall produce
+      identical output on the second run (no spurious git diffs).
+
+  - id: DHF-007
+    title: Requirements Traceability Through Derived Links
+    description: >
+      The system shall be able to enumerate, for a given user_need requirement
+      ID, all system_requirements derived from it and all tests that verify
+      those requirements.
+
+  - id: DHF-008
+    title: System Requirements Summary Generation
+    description: >
+      The system shall generate a requirements summary table from
+      requirements.yaml, showing count and types of requirements per domain
+      prefix.
+
+  - id: DHF-009
+    title: Input Contract Validation
+    description: >
+      Before any generation, the system shall validate that all input files
+      (requirements.yaml, soup.yaml, dhf_context.yaml, evidence_runs directory)
+      are present, parseable, and schema-correct. It shall raise a typed
+      DHFValidationError with a structured message identifying every violation
+      found. The generator shall not proceed past this step if any check fails.
+
+  - id: DHF-010
+    title: Stale Filled-Value Detection and Update
+    description: >
+      Values previously auto-filled by the generator shall be wrapped in HTML
+      sentinel comments so that a subsequent run can find and overwrite them
+      when the source value changes, without overwriting values that were filled
+      manually (no sentinel wrapper).
+
+  - id: DHF-011
+    title: Derived-From Completeness Enforcement
+    description: >
+      The DHFValidator shall reject any non-user_need requirement that has
+      an empty or absent derived_from field, listing all offending IDs in
+      the DHFValidationError.
+    rationale: >
+      An orphaned requirement (no declared parent) produces a silent gap in the
+      requirements traceability chain. IEC 62304 §5.5.5 requires that every
+      software requirement is traceable to a higher-level source; this validator
+      rule makes that constraint machine-checkable before documents are generated.
+    verification: >
+      Unit tests: a non-user_need requirement with empty derived_from raises
+      DHFValidationError; a user_need with no derived_from passes.
+
+  - id: DHF-012
+    title: Full Traceability Columns in RTM and Requirements Summary
+    description: >
+      Each Requirement object shall carry a source_file field (filename stem of
+      the file it was loaded from). The traceability matrix shall include the
+      following columns: Requirement ID, Source, Title, Derived From
+      (comma-separated parent IDs from the derived_from field), Design Spec
+      (comma-separated IDs of design requirements whose derived_from contains
+      this requirement's ID), Risk Ref (comma-separated IDs of risk controls
+      whose derived_from contains this requirement's ID), Verification Method
+      (the verification_method field value — T/I/A/D — or blank if absent),
+      Safety Relevant (Yes or blank from the safety_relevant boolean field),
+      Linked Tests, Evidence Artifacts, and Status. The Status column shall use
+      the following values: PASS (direct evidence exists), COVERED (no direct
+      evidence but all derived requirements in the matrix are PASS or COVERED —
+      verified through the chain), FAIL (any evidence record failed or any derived
+      requirement is FAIL), LINKED (test markers present but no evidence), UNTESTED
+      (no evidence, no markers, and chain coverage is incomplete or absent). COVERED
+      status shall be computed iteratively to handle multi-level hierarchies. The
+      system_requirements summary shall include a By Source File table so reviewers
+      can distinguish SRS from SDS verification rows without cross-referencing
+      a separate key.
+    rationale: >
+      IEC 62304 §5.5.5 and §8.1.3 require a complete vertical trace chain.
+      User needs and high-level system requirements are verified through their
+      derived requirements, not through direct unit tests; marking them UNTESTED
+      when all their children pass is misleading to a 510(k) reviewer. COVERED
+      correctly represents inherited verification. Derived From allows upward
+      navigation; Design Spec and Risk Ref allow downward navigation to the design
+      and risk layers. Verification Method satisfies IEC 62304 §5.7. Safety Relevant
+      flags requirements affecting patient safety. Together these columns make
+      the RTM a self-contained 510(k) trace artifact without requiring a reviewer
+      to cross-reference separate documents.
+    verification: >
+      Unit tests: RequirementsReader sets source_file to path stem for each
+      Requirement; load_requirements stores derived_from, verification_method,
+      and safety_relevant per requirement; build_trace_matrix rows include
+      design_refs and risk_refs computed by reverse derived_from lookup;
+      write_markdown output includes all column headers (Source, Derived From,
+      Design Spec, Risk Ref, Verification Method, Safety Relevant);
+      SystemRequirementsGenerator output contains "By Source File" table.
+
+  - id: DHF-013
+    title: Per-File Prefix and Type Constraint Validation
+    description: >
+      The DHFValidator shall read metadata.allowed_prefixes and
+      metadata.allowed_types from each requirement file and reject any requirement
+      whose ID prefix is not in allowed_prefixes or whose type is not in
+      allowed_types. A missing metadata.file_role field in any requirement file
+      shall also be reported as a violation.
+    rationale: >
+      Without this check, a requirement placed in the wrong file silently routes
+      to the wrong DHF document. The metadata block in each file is the authority
+      for what belongs there; the validator enforces the contract.
+    verification: >
+      Unit tests: ID prefix not in allowed_prefixes raises DHFValidationError;
+      type not in allowed_types raises; missing file_role raises; valid files pass.
+
+  - id: DHF-014
+    title: Hazard Analysis Scaffold Generation
+    description: >
+      The system shall generate scaffold rows for hazard_analysis.md from
+      hazard_analysis.yaml, populating HAZ-ID, hazard title, and mitigation_ref
+      columns. The cause, effect, severity, and probability columns shall be
+      left as <!-- FILL --> for manual completion.
+    rationale: >
+      ISO 14971 §4-5 requires a systematic hazard analysis whose identification
+      step is separate from the risk estimation step. Auto-generating the scaffold
+      ensures the HAZ-ID cross-reference to risk_controls.yaml is always in sync;
+      the narrative columns remain manual because they require domain expertise.
+    verification: >
+      Unit test: hazard_analysis.yaml with 2 HAZ entries produces a table with
+      2 scaffold rows; cause/effect/severity/probability columns contain
+      <!-- FILL -->; mitigation_ref column shows the hazard_ref value.
+
+  - id: DHF-015
+    title: DHF Change Impact Analysis
+    description: >
+      The system shall provide a DHFImpactAnalyzer that, given a list of changed
+      file paths relative to the project root, returns a structured impact report
+      classifying affected DHF sections as auto (regenerated by generate_dhf.py)
+      or manual (require human review). The analyzer shall expose a CLI entry point
+      so it can be called from CI scripts and shell commands.
+    rationale: >
+      Without impact detection, developers have no systematic signal for when to run
+      generate_dhf.py or which manual DHF sections need review after a code change.
+      Unreviewed changes in risk controls, hazard analysis, or intended use represent
+      a regulatory gap even when the auto-generated sections are current. This analyzer
+      closes that gap by making the review obligation explicit and traceable to each PR.
+    verification: >
+      Unit tests: changed docs/requirements.yaml triggers auto section for
+      system_requirements; changed docs/risk_controls.yaml triggers manual section for
+      risk_control_measures; changed src/ triggers manual section for SDP; no changed
+      files returns empty report; CLI exits 0 and prints structured output.
+
+  # ==============================
   # Risk Requirements
   # ==============================
 

@@ -48,26 +48,43 @@ def _extract_requirement_ids(record: dict[str, Any]) -> list[str]:
     return _extract_requirement_ids_from_issues(record)
 
 
-def load_requirements(requirements_yaml: Path) -> dict[str, dict[str, str]]:
-    with requirements_yaml.open() as f:
-        data = yaml.safe_load(f)
-
-    requirements = {}
-
-    for r in data.get("requirements", []):
-        requirements[r["id"]] = {
-            "title": r.get("title", ""),
-        }
-
+def load_requirements(requirements_yaml: Path | list[Path]) -> dict[str, dict]:
+    paths = requirements_yaml if isinstance(requirements_yaml, list) else [requirements_yaml]
+    requirements: dict[str, dict] = {}
+    for path in paths:
+        with path.open() as f:
+            data = yaml.safe_load(f)
+        source_file = path.stem
+        for r in data.get("requirements", []):
+            requirements[r["id"]] = {
+                "title": r.get("title", ""),
+                "source_file": source_file,
+                "derived_from": r.get("derived_from") or [],
+                "verification_method": r.get("verification_method") or "",
+                "safety_relevant": bool(r.get("safety_relevant", False)),
+            }
     return requirements
 
 
 def build_trace_matrix(
-    requirements_yaml: Path,
+    requirements_yaml: Path | list[Path],
     evidence_root: Path,
 ) -> list[dict[str, Any]]:
 
     requirements = load_requirements(requirements_yaml)
+
+    # Reverse maps: req_id → sorted list of design/risk req IDs that derive from it
+    reverse_design_map: dict[str, list[str]] = {}
+    reverse_risk_map: dict[str, list[str]] = {}
+    for rid, meta in requirements.items():
+        if meta.get("source_file") == "design":
+            target = reverse_design_map
+        elif meta.get("source_file") == "risk_controls":
+            target = reverse_risk_map
+        else:
+            continue
+        for parent in meta.get("derived_from", []):
+            target.setdefault(parent, []).append(rid)
 
     try:
         evidence = load_latest_evidence(evidence_root)
@@ -103,13 +120,58 @@ def build_trace_matrix(
             {
                 "requirement_id": req_id,
                 "title": meta["title"],
+                "source_file": meta.get("source_file", ""),
+                "derived_from": ", ".join(meta.get("derived_from", [])),
+                "design_refs": ", ".join(sorted(reverse_design_map.get(req_id, []))),
+                "risk_refs": ", ".join(sorted(reverse_risk_map.get(req_id, []))),
+                "verification_method": meta.get("verification_method", ""),
+                "safety_relevant": "Yes" if meta.get("safety_relevant") else "",
                 "tests": ", ".join(filter(None, tests)),
                 "evidence_files": ", ".join(filter(None, files)),
                 "status": status,
             }
         )
 
-    return sorted(matrix, key=lambda x: x["requirement_id"])
+    matrix_sorted = sorted(matrix, key=lambda x: x["requirement_id"])
+    _apply_inherited_status(matrix_sorted, requirements)
+    return matrix_sorted
+
+
+def _apply_inherited_status(
+    matrix: list[dict[str, Any]],
+    requirements: dict[str, dict],
+) -> None:
+    """
+    Promote UNTESTED requirements to COVERED when every requirement that
+    directly derives from them (their children) is PASS or COVERED.
+    Runs up to 5 passes to resolve multi-level chains (grandparent → parent → child).
+    Modifies `matrix` in-place.
+    """
+    # Build child map: parent_id → [child_ids that are in the matrix]
+    matrix_ids = {r["requirement_id"] for r in matrix}
+    children_map: dict[str, list[str]] = {r["requirement_id"]: [] for r in matrix}
+    for req_id, meta in requirements.items():
+        if req_id not in matrix_ids:
+            continue
+        for parent in meta.get("derived_from", []):
+            if parent in children_map:
+                children_map[parent].append(req_id)
+
+    status_by_id = {r["requirement_id"]: r for r in matrix}
+
+    for _ in range(5):
+        changed = False
+        for row in matrix:
+            if row["status"] != "UNTESTED":
+                continue
+            children = children_map[row["requirement_id"]]
+            if not children:
+                continue
+            if all(status_by_id[c]["status"] in ("PASS", "COVERED") for c in children):
+                row["status"] = "COVERED"
+                changed = True
+        if not changed:
+            break
 
 
 def _sanitize_cell(text: str) -> str:
@@ -215,17 +277,27 @@ def write_markdown(
         # ---------------------------------------------------------
 
         f.write(
-            "| Requirement ID | Title | Linked Tests | Evidence Artifacts | Status |\n"
+            "| Requirement ID | Source | Title | Derived From | Design Spec"
+            " | Risk Ref | Verification Method | Safety Relevant"
+            " | Linked Tests | Evidence Artifacts | Status |\n"
         )
         f.write(
-            "|----------------|-------------|--------------|--------------------|--------|\n"
+            "|----------------|--------|-------|--------------|------------"
+            "|----------|---------------------|----------------"
+            "|--------------|--------------------|--------|\n"
         )
 
         for row in matrix:
 
             f.write(
                 f"| {_sanitize_cell(row['requirement_id'])} "
+                f"| {_sanitize_cell(row.get('source_file', ''))} "
                 f"| {_sanitize_cell(row['title'])} "
+                f"| {_sanitize_cell(row.get('derived_from', ''))} "
+                f"| {_sanitize_cell(row.get('design_refs', ''))} "
+                f"| {_sanitize_cell(row.get('risk_refs', ''))} "
+                f"| {_sanitize_cell(row.get('verification_method', ''))} "
+                f"| {_sanitize_cell(row.get('safety_relevant', ''))} "
                 f"| {_sanitize_cell(row['tests'])} "
                 f"| {_sanitize_cell(row['evidence_files'])} "
                 f"| {_sanitize_cell(row['status'])} |\n"
