@@ -232,16 +232,25 @@ requirements:
       whose derived_from contains this requirement's ID), Verification Method
       (the verification_method field value — T/I/A/D — or blank if absent),
       Safety Relevant (Yes or blank from the safety_relevant boolean field),
-      Linked Tests, Evidence Artifacts, and Status. The system_requirements
-      summary shall include a By Source File table so reviewers can distinguish
-      SRS from SDS verification rows without cross-referencing a separate key.
+      Linked Tests, Evidence Artifacts, and Status. The Status column shall use
+      the following values: PASS (direct evidence exists), COVERED (no direct
+      evidence but all derived requirements in the matrix are PASS or COVERED —
+      verified through the chain), FAIL (any evidence record failed or any derived
+      requirement is FAIL), LINKED (test markers present but no evidence), UNTESTED
+      (no evidence, no markers, and chain coverage is incomplete or absent). COVERED
+      status shall be computed iteratively to handle multi-level hierarchies. The
+      system_requirements summary shall include a By Source File table so reviewers
+      can distinguish SRS from SDS verification rows without cross-referencing
+      a separate key.
     rationale: >
       IEC 62304 §5.5.5 and §8.1.3 require a complete vertical trace chain.
-      Derived From allows upward navigation to parent requirements; Design Spec
-      and Risk Ref allow downward navigation to the design and risk layers.
-      Verification Method satisfies IEC 62304 §5.7 (distinguish test, inspection,
-      analysis, demonstration). Safety Relevant flags requirements affecting patient
-      safety, supporting risk-proportionate V&V depth. Together these columns make
+      User needs and high-level system requirements are verified through their
+      derived requirements, not through direct unit tests; marking them UNTESTED
+      when all their children pass is misleading to a 510(k) reviewer. COVERED
+      correctly represents inherited verification. Derived From allows upward
+      navigation; Design Spec and Risk Ref allow downward navigation to the design
+      and risk layers. Verification Method satisfies IEC 62304 §5.7. Safety Relevant
+      flags requirements affecting patient safety. Together these columns make
       the RTM a self-contained 510(k) trace artifact without requiring a reviewer
       to cross-reference separate documents.
     verification: >

@@ -132,7 +132,46 @@ def build_trace_matrix(
             }
         )
 
-    return sorted(matrix, key=lambda x: x["requirement_id"])
+    matrix_sorted = sorted(matrix, key=lambda x: x["requirement_id"])
+    _apply_inherited_status(matrix_sorted, requirements)
+    return matrix_sorted
+
+
+def _apply_inherited_status(
+    matrix: list[dict[str, Any]],
+    requirements: dict[str, dict],
+) -> None:
+    """
+    Promote UNTESTED requirements to COVERED when every requirement that
+    directly derives from them (their children) is PASS or COVERED.
+    Runs up to 5 passes to resolve multi-level chains (grandparent → parent → child).
+    Modifies `matrix` in-place.
+    """
+    # Build child map: parent_id → [child_ids that are in the matrix]
+    matrix_ids = {r["requirement_id"] for r in matrix}
+    children_map: dict[str, list[str]] = {r["requirement_id"]: [] for r in matrix}
+    for req_id, meta in requirements.items():
+        if req_id not in matrix_ids:
+            continue
+        for parent in meta.get("derived_from", []):
+            if parent in children_map:
+                children_map[parent].append(req_id)
+
+    status_by_id = {r["requirement_id"]: r for r in matrix}
+
+    for _ in range(5):
+        changed = False
+        for row in matrix:
+            if row["status"] != "UNTESTED":
+                continue
+            children = children_map[row["requirement_id"]]
+            if not children:
+                continue
+            if all(status_by_id[c]["status"] in ("PASS", "COVERED") for c in children):
+                row["status"] = "COVERED"
+                changed = True
+        if not changed:
+            break
 
 
 def _sanitize_cell(text: str) -> str:

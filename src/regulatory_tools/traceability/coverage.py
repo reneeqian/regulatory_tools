@@ -18,7 +18,7 @@ def compute_requirement_coverage(
 
     tested = [
         r for r in matrix
-        if r.get("status") in ("PASS", "LINKED")
+        if r.get("status") in ("PASS", "COVERED", "LINKED")
     ]
 
     untested = [

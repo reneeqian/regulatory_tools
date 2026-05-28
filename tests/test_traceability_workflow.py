@@ -15,7 +15,7 @@ from regulatory_tools.traceability.validate_traceability import (
 )
 
 from regulatory_tools.evidence.evidence_report import generate_evidence_summary
-from regulatory_tools.traceability.coverage import compute_code_coverage
+from regulatory_tools.traceability.coverage import compute_code_coverage, compute_requirement_coverage
 
 # ----------------------------
 # Helpers
@@ -608,3 +608,136 @@ def test_write_markdown_includes_extended_column_headers(tmp_path):
     assert "DES-001" in text
     assert "RSK-001" in text
     assert "Yes" in text
+
+
+# ---------------------------------------------------------------------------
+# DHF-012 — COVERED status: parent requirements verified through derived chain
+# ---------------------------------------------------------------------------
+
+_PARENT_CHILD_YAML = """\
+requirements:
+  - id: UN-001
+    title: Parent req
+  - id: SYS-001
+    title: Child req
+    derived_from: [UN-001]
+"""
+
+_GRANDPARENT_YAML = """\
+requirements:
+  - id: UN-001
+    title: Grandparent req
+  - id: SYS-001
+    title: Parent req
+    derived_from: [UN-001]
+  - id: SYS-002
+    title: Child req
+    derived_from: [SYS-001]
+"""
+
+_MIXED_CHILDREN_YAML = """\
+requirements:
+  - id: UN-001
+    title: Parent req
+  - id: SYS-001
+    title: Child one
+    derived_from: [UN-001]
+  - id: SYS-002
+    title: Child two
+    derived_from: [UN-001]
+"""
+
+
+def _make_evidence(evidence_root: Path, req_id: str, test_id: str) -> None:
+    run_dir = evidence_root / "20260101_120000"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    record = {"test_id": test_id, "requirements": [req_id], "result": "PASS"}
+    (run_dir / f"{test_id}.json").write_text(json.dumps(record))
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_status_single_level(tmp_path: Path):
+    """Parent with no direct evidence becomes COVERED when its only child is PASS."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_PARENT_CHILD_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    _make_evidence(evidence_root, "SYS-001", "test_sys001")
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    assert by_id["SYS-001"]["status"] == "PASS"
+    assert by_id["UN-001"]["status"] == "COVERED"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_status_mixed_children_stays_untested(tmp_path: Path):
+    """Parent stays UNTESTED when some children are PASS and some are UNTESTED."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_MIXED_CHILDREN_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    _make_evidence(evidence_root, "SYS-001", "test_sys001")
+    # SYS-002 has no evidence → UNTESTED
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    assert by_id["SYS-001"]["status"] == "PASS"
+    assert by_id["SYS-002"]["status"] == "UNTESTED"
+    assert by_id["UN-001"]["status"] == "UNTESTED"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_status_no_children_stays_untested(tmp_path: Path):
+    """A requirement with no derived children and no evidence stays UNTESTED."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(
+        """\
+requirements:
+  - id: UN-001
+    title: Isolated req with no children
+"""
+    )
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    assert by_id["UN-001"]["status"] == "UNTESTED"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_status_two_level_transitive(tmp_path: Path):
+    """Multi-pass: grandparent and parent both become COVERED when grandchild is PASS."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_GRANDPARENT_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    _make_evidence(evidence_root, "SYS-002", "test_sys002")
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    assert by_id["SYS-002"]["status"] == "PASS"
+    assert by_id["SYS-001"]["status"] == "COVERED"
+    assert by_id["UN-001"]["status"] == "COVERED"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_counts_toward_requirement_coverage(tmp_path: Path):
+    """COVERED requirements count as tested; excluded from the Untested list."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_PARENT_CHILD_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    _make_evidence(evidence_root, "SYS-001", "test_sys001")
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    pct, _tested, _total, untested = compute_requirement_coverage(matrix)
+
+    # Both SYS-001 (PASS) and UN-001 (COVERED) are considered tested
+    assert pct == 100.0
+    assert "UN-001" not in untested
