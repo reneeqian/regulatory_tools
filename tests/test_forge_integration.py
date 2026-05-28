@@ -1,8 +1,7 @@
 """Tests for forge_integration: write_forge_health_to_summary and update_readme param."""
 
 import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from regulatory_tools.quality.forge_integration import (
     write_forge_health_to_summary,

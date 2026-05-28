@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from importlib_resources import contents
 import pytest
 import subprocess
 import sys

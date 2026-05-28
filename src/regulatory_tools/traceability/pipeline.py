@@ -53,7 +53,7 @@ def generate_traceability_matrix(project_root):
             if not tm.skipped and tm.line_coverage is not None:
                 code_coverage = tm.line_coverage
     except ImportError:
-        pass
+        forge_summary = None  # forge-utils not installed; fall through to standalone coverage
 
     # Fall back to standalone coverage parsing when forge is unavailable or
     # when forge's test_metrics couldn't read a coverage report

@@ -2,12 +2,10 @@
 Tests for regulatory_tools.dhf.placeholder_filler — PlaceholderFiller (DHF-002, DHF-006, DHF-010).
 These tests must fail before PlaceholderFiller exists.
 """
-from pathlib import Path
-
 import pytest
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport
-from regulatory_tools.dhf.placeholder_filler import FilledResult, PlaceholderFiller
+from regulatory_tools.dhf.placeholder_filler import PlaceholderFiller
 
 
 CONTEXT = {"PROJECT_NAME": "COCA-prj", "AUTHOR": "Renee Qian"}

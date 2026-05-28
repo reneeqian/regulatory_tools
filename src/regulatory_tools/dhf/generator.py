@@ -15,7 +15,7 @@ from regulatory_tools.dhf.generators.traceability_index import TraceabilityIndex
 from regulatory_tools.dhf.placeholder_filler import PlaceholderFiller
 from regulatory_tools.dhf.requirements_reader import RequirementsReader
 from regulatory_tools.dhf.section_scaffolder import SectionScaffolder
-from regulatory_tools.dhf.validator import DHFValidationError, DHFValidator
+from regulatory_tools.dhf.validator import DHFValidator
 
 
 @dataclass
