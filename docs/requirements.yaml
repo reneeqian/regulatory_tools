@@ -1,5 +1,6 @@
 metadata:
   project: regulatory_tools
+  samd_class: tool  # Not a SaMD — generates regulatory artifacts (DHF docs, evidence) that feed submissions
   version: 1.0
   description: >
     helper tools for regulatory software engineering principles, including
