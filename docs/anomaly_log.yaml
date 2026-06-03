@@ -1,0 +1,9 @@
+metadata:
+  project: regulatory_tools
+  standard: IEC 62304 §9
+  description: >
+    Formal problem resolution record. Each entry represents a known anomaly
+    in the software. Open anomalies must be resolved or formally deferred
+    before a version baseline is tagged.
+
+anomalies: []
