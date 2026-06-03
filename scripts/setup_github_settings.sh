@@ -29,8 +29,8 @@
 #       deletion and force-push blocked
 #
 #   dev branch:
-#     - PR required, no approval needed
-#     - Status checks required (ci_check), non-strict
+#     - Direct pushes allowed (no PR requirement) — enables automated sync from main
+#     - Status checks required (ci_check) for PRs, non-strict
 #     - No force pushes, no deletions
 #     - Ruleset: only squash merges allowed, ci_check required before merge
 #
@@ -92,6 +92,8 @@ echo "{
 echo "      PR required, 1 review + code owner, strict CI, no force-push/delete"
 
 # ── 3. dev — classic branch protection ───────────────────────────────────────
+# No required_pull_request_reviews: allows direct pushes from the automated
+# sync-main-to-dev workflow (GITHUB_TOKEN). CI is still required for PRs.
 echo "[3/5] dev branch protection (classic)..."
 echo "{
   \"required_status_checks\": {
@@ -99,16 +101,12 @@ echo "{
     \"checks\": [{\"context\": \"$CI_CHECK\"}]
   },
   \"enforce_admins\": false,
-  \"required_pull_request_reviews\": {
-    \"required_approving_review_count\": 0,
-    \"dismiss_stale_reviews\": false,
-    \"require_code_owner_reviews\": false
-  },
+  \"required_pull_request_reviews\": null,
   \"restrictions\": null,
   \"allow_deletions\": false,
   \"allow_force_pushes\": false
 }" | gh_api "repos/$REPO/branches/dev/protection" --method PUT --input - --silent
-echo "      PR required (no approval), CI required, no force-push/delete"
+echo "      Direct pushes allowed, CI required for PRs, no force-push/delete"
 
 # ── 4. Rulesets ───────────────────────────────────────────────────────────────
 echo "[4/5] Rulesets..."
@@ -203,5 +201,5 @@ echo "Done. Settings applied to $REPO."
 echo ""
 echo "Summary:"
 echo "  main  — 1 review + code owner + strict CI (merge commit only, no force-push/delete)"
-echo "  dev   — PR required + CI (squash only, no force-push/delete)"
+echo "  dev   — direct pushes allowed + CI on PRs (squash only, no force-push/delete)"
 echo "  repo  — auto-delete branches on merge, auto-merge enabled, rebase disabled"

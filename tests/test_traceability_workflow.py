@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
-from importlib_resources import contents
 import pytest
 import subprocess
 import sys
 
 from regulatory_tools.traceability.generator import (
     build_trace_matrix,
+    load_requirements,
     write_markdown,
 )
 from regulatory_tools.traceability.validate_traceability import (
@@ -14,7 +14,7 @@ from regulatory_tools.traceability.validate_traceability import (
 )
 
 from regulatory_tools.evidence.evidence_report import generate_evidence_summary
-from regulatory_tools.traceability.coverage import compute_code_coverage
+from regulatory_tools.traceability.coverage import compute_code_coverage, compute_requirement_coverage
 
 # ----------------------------
 # Helpers
@@ -446,3 +446,297 @@ requirements:
     )
 
     assert result.returncode == 0
+
+
+# ---------------------------------------------------------------------------
+# DHF-012 — Source column in traceability matrix
+# ---------------------------------------------------------------------------
+
+SOURCE_REQS_YAML = """\
+metadata:
+  project: test
+  file_role: system_requirements
+  allowed_prefixes: [VER]
+  allowed_types: [system_requirement]
+requirements:
+  - id: VER-001
+    title: Verification req
+    description: Something.
+    derived_from: []
+"""
+
+
+@pytest.mark.requirement("DHF-012")
+def test_traceability_matrix_includes_source_column(tmp_path):
+    """write_markdown output includes a Source column showing the origin file stem."""
+
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(SOURCE_REQS_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    output_md = tmp_path / "traceability_matrix.md"
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    write_markdown(matrix, output_md)
+
+    contents = output_md.read_text()
+    assert "Source" in contents, "Expected 'Source' column header in traceability matrix"
+    assert "requirements" in contents, "Expected source_file stem 'requirements' in matrix rows"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_build_trace_matrix_row_has_source_file_field(tmp_path):
+    """Each matrix row includes a source_file key set to the requirements filename stem."""
+
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(SOURCE_REQS_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+
+    assert len(matrix) == 1
+    assert "source_file" in matrix[0], "Expected 'source_file' key in matrix row dict"
+    assert matrix[0]["source_file"] == "requirements"
+
+
+# ---------------------------------------------------------------------------
+# DHF-012 — Extended traceability columns (Derived From, Design Spec,
+#           Risk Ref, Verification Method, Safety Relevant)
+# ---------------------------------------------------------------------------
+
+_EXTENDED_REQ_YAML = """\
+requirements:
+  - id: SYS-001
+    title: A system req
+    derived_from: [UN-001]
+    verification_method: T
+    safety_relevant: true
+  - id: SYS-002
+    title: Another req
+"""
+
+_DESIGN_YAML = """\
+requirements:
+  - id: DES-001
+    title: A design req
+    derived_from: [SYS-001]
+"""
+
+_RISK_YAML = """\
+requirements:
+  - id: RSK-001
+    title: A risk control
+    derived_from: [SYS-001]
+"""
+
+
+@pytest.mark.requirement("DHF-012")
+def test_load_requirements_stores_extended_fields(tmp_path):
+    """load_requirements stores derived_from, verification_method, safety_relevant; defaults when absent."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_EXTENDED_REQ_YAML)
+
+    reqs = load_requirements(req_yaml)
+
+    assert reqs["SYS-001"]["derived_from"] == ["UN-001"]
+    assert reqs["SYS-001"]["verification_method"] == "T"
+    assert reqs["SYS-001"]["safety_relevant"] is True
+    assert reqs["SYS-002"]["derived_from"] == []
+    assert reqs["SYS-002"]["verification_method"] == ""
+    assert reqs["SYS-002"]["safety_relevant"] is False
+
+
+@pytest.mark.requirement("DHF-012")
+def test_build_trace_matrix_includes_extended_columns(tmp_path):
+    """Matrix rows include derived_from, design_refs, risk_refs, verification_method, safety_relevant."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_EXTENDED_REQ_YAML)
+    design_yaml = tmp_path / "design.yaml"
+    design_yaml.write_text(_DESIGN_YAML)
+    risk_yaml = tmp_path / "risk_controls.yaml"
+    risk_yaml.write_text(_RISK_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+
+    matrix = build_trace_matrix(
+        requirements_yaml=[req_yaml, design_yaml, risk_yaml],
+        evidence_root=evidence_root,
+    )
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    sys001 = by_id["SYS-001"]
+    assert sys001["derived_from"] == "UN-001"
+    assert sys001["design_refs"] == "DES-001"
+    assert sys001["risk_refs"] == "RSK-001"
+    assert sys001["verification_method"] == "T"
+    assert sys001["safety_relevant"] == "Yes"
+
+    des001 = by_id["DES-001"]
+    assert des001["derived_from"] == "SYS-001"
+    assert des001["design_refs"] == ""
+    assert des001["risk_refs"] == ""
+
+
+@pytest.mark.requirement("DHF-012")
+def test_write_markdown_includes_extended_column_headers(tmp_path):
+    """write_markdown output contains all extended column headers and their values."""
+    matrix = [{
+        "requirement_id": "SYS-001",
+        "title": "A req",
+        "source_file": "requirements",
+        "tests": "",
+        "evidence_files": "",
+        "status": "UNTESTED",
+        "derived_from": "UN-001",
+        "design_refs": "DES-001",
+        "risk_refs": "RSK-001",
+        "verification_method": "T",
+        "safety_relevant": "Yes",
+    }]
+    output = tmp_path / "rtm.md"
+    write_markdown(matrix, output)
+    text = output.read_text()
+
+    assert "Derived From" in text
+    assert "Design Spec" in text
+    assert "Risk Ref" in text
+    assert "Verification Method" in text
+    assert "Safety Relevant" in text
+    assert "UN-001" in text
+    assert "DES-001" in text
+    assert "RSK-001" in text
+    assert "Yes" in text
+
+
+# ---------------------------------------------------------------------------
+# DHF-012 — COVERED status: parent requirements verified through derived chain
+# ---------------------------------------------------------------------------
+
+_PARENT_CHILD_YAML = """\
+requirements:
+  - id: UN-001
+    title: Parent req
+  - id: SYS-001
+    title: Child req
+    derived_from: [UN-001]
+"""
+
+_GRANDPARENT_YAML = """\
+requirements:
+  - id: UN-001
+    title: Grandparent req
+  - id: SYS-001
+    title: Parent req
+    derived_from: [UN-001]
+  - id: SYS-002
+    title: Child req
+    derived_from: [SYS-001]
+"""
+
+_MIXED_CHILDREN_YAML = """\
+requirements:
+  - id: UN-001
+    title: Parent req
+  - id: SYS-001
+    title: Child one
+    derived_from: [UN-001]
+  - id: SYS-002
+    title: Child two
+    derived_from: [UN-001]
+"""
+
+
+def _make_evidence(evidence_root: Path, req_id: str, test_id: str) -> None:
+    run_dir = evidence_root / "20260101_120000"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    record = {"test_id": test_id, "requirements": [req_id], "result": "PASS"}
+    (run_dir / f"{test_id}.json").write_text(json.dumps(record))
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_status_single_level(tmp_path: Path):
+    """Parent with no direct evidence becomes COVERED when its only child is PASS."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_PARENT_CHILD_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    _make_evidence(evidence_root, "SYS-001", "test_sys001")
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    assert by_id["SYS-001"]["status"] == "PASS"
+    assert by_id["UN-001"]["status"] == "COVERED"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_status_mixed_children_stays_untested(tmp_path: Path):
+    """Parent stays UNTESTED when some children are PASS and some are UNTESTED."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_MIXED_CHILDREN_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    _make_evidence(evidence_root, "SYS-001", "test_sys001")
+    # SYS-002 has no evidence → UNTESTED
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    assert by_id["SYS-001"]["status"] == "PASS"
+    assert by_id["SYS-002"]["status"] == "UNTESTED"
+    assert by_id["UN-001"]["status"] == "UNTESTED"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_status_no_children_stays_untested(tmp_path: Path):
+    """A requirement with no derived children and no evidence stays UNTESTED."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(
+        """\
+requirements:
+  - id: UN-001
+    title: Isolated req with no children
+"""
+    )
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    assert by_id["UN-001"]["status"] == "UNTESTED"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_status_two_level_transitive(tmp_path: Path):
+    """Multi-pass: grandparent and parent both become COVERED when grandchild is PASS."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_GRANDPARENT_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    _make_evidence(evidence_root, "SYS-002", "test_sys002")
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    by_id = {r["requirement_id"]: r for r in matrix}
+
+    assert by_id["SYS-002"]["status"] == "PASS"
+    assert by_id["SYS-001"]["status"] == "COVERED"
+    assert by_id["UN-001"]["status"] == "COVERED"
+
+
+@pytest.mark.requirement("DHF-012")
+def test_covered_counts_toward_requirement_coverage(tmp_path: Path):
+    """COVERED requirements count as tested; excluded from the Untested list."""
+    req_yaml = tmp_path / "requirements.yaml"
+    req_yaml.write_text(_PARENT_CHILD_YAML)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    _make_evidence(evidence_root, "SYS-001", "test_sys001")
+
+    matrix = build_trace_matrix(requirements_yaml=req_yaml, evidence_root=evidence_root)
+    pct, _tested, _total, untested = compute_requirement_coverage(matrix)
+
+    # Both SYS-001 (PASS) and UN-001 (COVERED) are considered tested
+    assert pct == 100.0
+    assert "UN-001" not in untested
