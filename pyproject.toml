@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 
 dependencies = [
     "pyyaml==6.0.3",
-    "forge-utils @ git+https://github.com/reneeqian/forge.git@v0.2.0",
+    "forge-utils @ git+https://github.com/reneeqian/forge.git@v0.3.0",
 ]
 
 [project.optional-dependencies]
