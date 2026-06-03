@@ -1,10 +1,14 @@
 soup:
   - name: pyyaml
     version: "6.0.3"
-    purpose: "Parsing requirements.yaml and other YAML configuration files"
+    intended_use: "Parsing requirements.yaml and other YAML configuration files"
     license: MIT
+    risk: low
+    verified_by: pip-audit
 
   - name: forge-utils
-    version: "0.1.0"
-    purpose: "Regulatory health grading, traceability matrix generation, and evidence reporting"
+    version: "0.3.0"
+    intended_use: "Regulatory health grading, traceability matrix generation, and evidence reporting"
     license: Internal
+    risk: low
+    verified_by: "pip-audit, internal review (pinned git tag @v0.3.0)"
