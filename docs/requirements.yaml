@@ -332,3 +332,100 @@ requirements:
       Evidence artifacts containing risk classification metadata
       shall preserve that metadata when aggregated into reporting
       outputs.
+
+  # ==============================
+  # Verification Gate Requirements
+  # ==============================
+
+  - id: VER-008
+    title: SOUP Field Completeness Check
+    description: >
+      The system shall verify that each entry in docs/soup.yaml has
+      intended_use, risk, and verified_by fields, and that no entry uses the
+      non-standard purpose field name. Any missing or mis-named field shall be
+      reported as a violation.
+    rationale: >
+      soup_checker.py today only checks name coverage (is the dep listed?). It
+      does not validate field content. The forge audit found all 4 forge SOUP
+      entries missing risk/verified_by with wrong field names — undetected by CI.
+      Field-level validation closes that gap.
+    verification: >
+      Unit tests: entry missing intended_use triggers violation; entry using
+      purpose triggers violation; entry missing risk triggers violation; entry
+      missing verified_by triggers violation; fully-populated entry passes.
+
+  - id: VER-009
+    title: Version Baseline Consistency Check
+    description: >
+      The system shall verify that the version field in pyproject.toml matches
+      the latest semantic version git tag (stripped of leading v). If no git
+      tags exist the check shall warn but not fail. If tags exist and the
+      version does not match, the check shall report a violation.
+    rationale: >
+      IEC 62304 §8.1.1 requires a version baseline. In this workspace, git tags
+      are the baseline mechanism. The audit found regulatory_tools at version
+      0.1.0 while the latest tag was v1.1.0 — pyproject.toml version was never
+      bumped. A CI-enforced check would have caught this immediately.
+    verification: >
+      Unit tests: pyproject version matching latest tag passes; version mismatch
+      reports violation; no git tags returns warning (no violation).
+
+  - id: VER-010
+    title: Anomaly Log Existence Check
+    description: >
+      For packages with samd_class of A, B, C, or tool, the system shall verify
+      that docs/anomaly_log.yaml exists. Absence shall be reported as a violation.
+      Packages with samd_class of utility shall be skipped.
+    rationale: >
+      IEC 62304 §9.1 requires a formal problem resolution record. Without a CI
+      check, the anomaly log was absent from all four packages and only created
+      manually after an audit. Automated presence check ensures it is never
+      silently absent after package creation.
+    verification: >
+      Unit tests: anomaly_log.yaml present → passes; absent + samd_class C →
+      violation; absent + samd_class utility → no violation.
+
+  - id: VER-011
+    title: LINKED Requirements Gate
+    description: >
+      For packages with samd_class of A, B, C, or tool, the system shall read
+      the generated docs/traceability_matrix.md after matrix generation and fail
+      the verification run if any requirement has LINKED status. The list of
+      LINKED requirement IDs shall be printed. Packages with samd_class of
+      utility shall be skipped.
+    rationale: >
+      LINKED means a test exists but no EvidenceReport.auto_save() was called —
+      the test ran but produced no machine-readable evidence. For tool/SaMD
+      packages every test must produce evidence (per coding best practices). The
+      audit found 19 LINKED requirements in regulatory_tools; CI never flagged
+      them. This check makes LINKED accumulation a CI gate, not a silent metric.
+    verification: >
+      Unit tests: traceability_matrix.md with 0 LINKED rows passes; 1+ LINKED
+      rows + samd_class C exits 1; samd_class utility passes regardless.
+
+  # ==============================
+  # DHF Generation Requirements (continued)
+  # ==============================
+
+  - id: DHF-016
+    title: Anomaly Log DHF Generation
+    description: >
+      The system shall generate the Anomaly Table and Unresolved Anomalies
+      sections in anomaly_log.md from anomaly_log.yaml, using sentinel markers
+      DHF_ANOMALY_TABLE and DHF_UNRESOLVED_ANOMALIES. The Anomaly Table shall
+      include all entries; the Unresolved Anomalies table shall include only
+      entries whose status field is open, in_progress, or deferred
+      (case-insensitive). Missing optional fields (safety_impact, linked_pr,
+      closed) shall render as —. An empty anomalies list shall produce no rows
+      (header retained by the sentinel block).
+    rationale: >
+      anomaly_log.yaml is the machine-readable source of truth for IEC 62304 §9.
+      Without a generator, the anomaly_log.md DHF document must be maintained
+      manually in parallel, which creates divergence risk. Following the
+      hazard_analysis pattern, the YAML drives both the DHF document and any
+      CI checks.
+    verification: >
+      Unit tests: yaml with 2 entries produces 2 table rows; empty anomalies
+      produces 0 rows (header retained); open anomaly appears in unresolved
+      section; closed anomaly does not; optional fields absent render as —;
+      update_document is idempotent on second run.

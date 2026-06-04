@@ -4,6 +4,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import yaml
+
 
 def check_soup_inventory(project_root: Path) -> dict:
     """
@@ -53,4 +55,43 @@ def check_soup_inventory(project_root: Path) -> dict:
         if name not in soup_text
     ]
     result["unlisted_deps"] = unlisted
+    return result
+
+
+_REQUIRED_FIELDS = ("intended_use", "risk", "verified_by")
+
+
+def check_soup_fields(project_root: Path) -> dict:
+    """
+    Verify that each entry in docs/soup.yaml has all required fields and
+    does not use the non-standard 'purpose' field name.
+
+    Returns
+    -------
+    dict with keys:
+        found      : bool        — True if docs/soup.yaml exists
+        violations : list[str]   — one message per offending entry/field
+    """
+    soup_path = project_root / "docs" / "soup.yaml"
+    result: dict = {"found": False, "violations": []}
+
+    if not soup_path.exists():
+        return result
+
+    result["found"] = True
+    with open(soup_path) as f:
+        data = yaml.safe_load(f)
+
+    for entry in data.get("soup", []):
+        name = entry.get("name", "<unknown>")
+        if "purpose" in entry:
+            result["violations"].append(
+                f"{name}: uses 'purpose' field — rename to 'intended_use'"
+            )
+        for field in _REQUIRED_FIELDS:
+            if field not in entry:
+                result["violations"].append(
+                    f"{name}: missing required field '{field}'"
+                )
+
     return result
