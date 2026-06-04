@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from regulatory_tools.dhf.context import DHFContext
+from regulatory_tools.dhf.generators.anomaly_log import AnomalyLogGenerator
 from regulatory_tools.dhf.generators.baseline_register import BaselineRegisterGenerator
 from regulatory_tools.dhf.generators.change_log import ChangeLogGenerator
 from regulatory_tools.dhf.generators.evidence_index import EvidenceIndexGenerator
@@ -160,6 +161,18 @@ class DHFGenerator:
                     report.files_modified.append(doc)
         return report
 
+    def update_anomaly_log(self) -> DHFGenerationReport:
+        report = DHFGenerationReport()
+        anomaly_path = self._ctx.data_sources.get("anomaly_log")
+        if anomaly_path and anomaly_path.exists():
+            gen = AnomalyLogGenerator(anomaly_path)
+            for doc in sorted(self._root.rglob("anomaly_log.md")):
+                before = doc.read_text()
+                gen.update_document(doc)
+                if doc.read_text() != before:
+                    report.files_modified.append(doc)
+        return report
+
     def run_all(self) -> DHFGenerationReport:
         combined = DHFGenerationReport()
 
@@ -175,6 +188,7 @@ class DHFGenerator:
         _merge(self.update_traceability_index())
         _merge(self.update_risk_controls())
         _merge(self.update_hazard_analysis())
+        _merge(self.update_anomaly_log())
         _merge(self.update_baseline_register())
         _merge(self.update_change_log())
         _merge(self.fill_placeholders())

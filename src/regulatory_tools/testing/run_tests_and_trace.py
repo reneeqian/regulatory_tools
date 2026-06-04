@@ -25,6 +25,7 @@ def run_tests_and_trace(project_root: Path, min_grade: str | None = "B", *, upda
     run_pytest_with_coverage(project_root)
     _run_quality_checks(project_root)
     forge_summary = generate_traceability_matrix(project_root)
+    _check_linked_gate(project_root)
 
     if forge_summary is None:
         print("[run_tests_and_trace] forge not installed — skipping grade check and README update.")
@@ -54,9 +55,24 @@ def run_tests_and_trace(project_root: Path, min_grade: str | None = "B", *, upda
         sys.exit(1)
 
 
+def _check_linked_gate(project_root: Path) -> None:
+    from ..quality.linked_checker import check_linked_requirements
+    result = check_linked_requirements(project_root)
+    if result["skipped"]:
+        return
+    if result["linked_ids"]:
+        ids = ", ".join(result["linked_ids"])
+        print(f"[FAIL] {len(result['linked_ids'])} LINKED requirement(s) — tests exist but no evidence: {ids}")
+        print("[FAIL] Add EvidenceReport.auto_save() to each linked test to convert LINKED → PASS.")
+        sys.exit(1)
+    print(f"[OK] LINKED gate: 0 LINKED requirements")
+
+
 def _run_quality_checks(project_root: Path) -> None:
-    from ..quality.soup_checker import check_soup_inventory
+    from ..quality.soup_checker import check_soup_inventory, check_soup_fields
     from ..quality.rsk_checker import check_rsk_requirements
+    from ..quality.anomaly_checker import check_anomaly_log
+    from ..quality.version_checker import check_version_baseline
 
     soup = check_soup_inventory(project_root)
     if not soup["found"]:
@@ -66,8 +82,35 @@ def _run_quality_checks(project_root: Path) -> None:
     else:
         print(f"[OK] SOUP inventory found: {soup['soup_path']}")
 
+    fields = check_soup_fields(project_root)
+    if fields["found"] and fields["violations"]:
+        for v in fields["violations"]:
+            print(f"[WARN] SOUP field: {v}")
+    elif fields["found"]:
+        print("[OK] SOUP field completeness: all entries valid")
+
     rsk = check_rsk_requirements(project_root)
     if not rsk["found"]:
         print("[WARN] No RSK- requirements found in docs/requirements.yaml — risk management gap")
     else:
         print(f"[OK] RSK requirements present: {rsk['rsk_ids']}")
+
+    anomaly = check_anomaly_log(project_root)
+    if anomaly["skipped"]:
+        print("[OK] Anomaly log check skipped (samd_class: utility)")
+    elif not anomaly["found"]:
+        for v in anomaly["violations"]:
+            print(f"[WARN] Anomaly log: {v}")
+    else:
+        print("[OK] docs/anomaly_log.yaml present")
+
+    version = check_version_baseline(project_root)
+    if not version["found"]:
+        print("[WARN] pyproject.toml not found — version baseline check skipped")
+    elif not version["has_tags"]:
+        print(f"[WARN] Version: {version['warning']}")
+    elif version["violations"]:
+        for v in version["violations"]:
+            print(f"[WARN] Version: {v}")
+    else:
+        print(f"[OK] Version baseline: {version['pyproject_version']} matches tag v{version['latest_tag']}")

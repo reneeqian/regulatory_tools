@@ -1,5 +1,5 @@
 """
-Tests for regulatory_tools.dhf.generators (DHF-003, DHF-008).
+Tests for regulatory_tools.dhf.generators (DHF-003, DHF-008, DHF-016).
 These tests must fail before the generators exist.
 """
 import json
@@ -23,6 +23,7 @@ from regulatory_tools.dhf.generators.traceability_index import TraceabilityIndex
 from regulatory_tools.dhf.generators.baseline_register import BaselineRegisterGenerator
 from regulatory_tools.dhf.generators.change_log import ChangeLogGenerator
 from regulatory_tools.dhf.generators.hazard_analysis import HazardAnalysisGenerator
+from regulatory_tools.dhf.generators.anomaly_log import AnomalyLogGenerator  # fails until DHF-016 implemented
 from regulatory_tools.dhf.requirements_reader import RequirementsReader
 
 
@@ -517,6 +518,187 @@ def test_hazard_analysis_update_document_is_idempotent(tmp_path, evidence_output
 
     report.info("Two update_document() calls with same hazard_analysis.yaml produce identical file", "DHF-006")
     report.auto_save("dhf006_hazard_analysis_idempotent", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+# ---------------------------------------------------------------------------
+# AnomalyLogGenerator — DHF-016
+# ---------------------------------------------------------------------------
+
+ANOMALY_LOG_TWO_ENTRIES = textwrap.dedent("""\
+    metadata:
+      project: test_project
+      standard: IEC 62304 §9
+    anomalies:
+      - id: ANO-001
+        date: "2026-05-26"
+        severity: major
+        status: open
+        summary: "Patient sample contract test failures"
+        affected_requirements: [DAT-001]
+        resolution: "Under investigation"
+      - id: ANO-002
+        date: "2026-04-10"
+        severity: low
+        status: closed
+        summary: "Missing documentation in README"
+        affected_requirements: []
+        resolution: "Updated README"
+        closed: "2026-04-12"
+""")
+
+ANOMALY_LOG_EMPTY_LIST = textwrap.dedent("""\
+    metadata:
+      project: test_project
+      standard: IEC 62304 §9
+    anomalies: []
+""")
+
+ANOMALY_LOG_ALL_OPTIONAL_ABSENT = textwrap.dedent("""\
+    metadata:
+      project: test_project
+      standard: IEC 62304 §9
+    anomalies:
+      - id: ANO-001
+        date: "2026-05-26"
+        severity: major
+        status: open
+        summary: "Some issue"
+""")
+
+
+@pytest.mark.requirement("DHF-016")
+def test_anomaly_log_generates_two_table_rows(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-016: AnomalyLogGenerator produces one row per anomaly entry")
+
+    yaml_file = tmp_path / "anomaly_log.yaml"
+    yaml_file.write_text(ANOMALY_LOG_TWO_ENTRIES)
+
+    gen = AnomalyLogGenerator(yaml_file)
+    rows = gen.generate_table_rows()
+
+    assert "ANO-001" in rows
+    assert "ANO-002" in rows
+    assert rows.count("ANO-") == 2, f"Expected exactly 2 rows; got:\n{rows}"
+
+    report.info("2-entry yaml → 2 rows in generate_table_rows()", "DHF-016")
+    report.auto_save("dhf016_anomaly_log_two_rows", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-016")
+def test_anomaly_log_empty_produces_no_data_rows(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-016: AnomalyLogGenerator produces no data rows for empty anomalies list")
+
+    yaml_file = tmp_path / "anomaly_log.yaml"
+    yaml_file.write_text(ANOMALY_LOG_EMPTY_LIST)
+
+    gen = AnomalyLogGenerator(yaml_file)
+    rows = gen.generate_table_rows()
+
+    assert "ANO-" not in rows, f"Empty list must produce no data rows; got:\n{rows}"
+
+    report.info("empty anomalies list → no data rows", "DHF-016")
+    report.auto_save("dhf016_anomaly_log_empty_no_rows", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-016")
+def test_anomaly_log_open_entry_in_unresolved_section(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-016: open anomaly appears in generate_unresolved_rows()")
+
+    yaml_file = tmp_path / "anomaly_log.yaml"
+    yaml_file.write_text(ANOMALY_LOG_TWO_ENTRIES)
+
+    gen = AnomalyLogGenerator(yaml_file)
+    unresolved = gen.generate_unresolved_rows()
+
+    assert "ANO-001" in unresolved, f"Open ANO-001 must appear in unresolved rows; got:\n{unresolved}"
+
+    report.info("open ANO-001 → appears in generate_unresolved_rows()", "DHF-016")
+    report.auto_save("dhf016_open_anomaly_in_unresolved", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-016")
+def test_anomaly_log_closed_entry_not_in_unresolved_section(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-016: closed anomaly does not appear in generate_unresolved_rows()")
+
+    yaml_file = tmp_path / "anomaly_log.yaml"
+    yaml_file.write_text(ANOMALY_LOG_TWO_ENTRIES)
+
+    gen = AnomalyLogGenerator(yaml_file)
+    unresolved = gen.generate_unresolved_rows()
+
+    assert "ANO-002" not in unresolved, f"Closed ANO-002 must not appear in unresolved rows; got:\n{unresolved}"
+
+    report.info("closed ANO-002 → absent from generate_unresolved_rows()", "DHF-016")
+    report.auto_save("dhf016_closed_anomaly_not_in_unresolved", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-016")
+def test_anomaly_log_optional_fields_absent_render_as_dash(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-016: missing optional fields (safety_impact, linked_pr, closed) render as —")
+
+    yaml_file = tmp_path / "anomaly_log.yaml"
+    yaml_file.write_text(ANOMALY_LOG_ALL_OPTIONAL_ABSENT)
+
+    gen = AnomalyLogGenerator(yaml_file)
+    rows = gen.generate_table_rows()
+
+    assert "ANO-001" in rows
+    assert "—" in rows, f"Missing optional fields must render as —; got:\n{rows}"
+
+    report.info("optional fields absent → rendered as — in table row", "DHF-016")
+    report.auto_save("dhf016_optional_fields_dash", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-016")
+def test_anomaly_log_update_document_is_idempotent(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-016: AnomalyLogGenerator.update_document() is idempotent")
+
+    yaml_file = tmp_path / "anomaly_log.yaml"
+    yaml_file.write_text(ANOMALY_LOG_TWO_ENTRIES)
+    doc = tmp_path / "anomaly_log.md"
+    doc.write_text(
+        _doc_with_sentinels("ANOMALY_TABLE")
+        + "\n"
+        + _doc_with_sentinels("UNRESOLVED_ANOMALIES")
+    )
+
+    gen = AnomalyLogGenerator(yaml_file)
+    gen.update_document(doc)
+    first = doc.read_text()
+
+    gen.update_document(doc)
+    second = doc.read_text()
+
+    assert first == second
+
+    report.info("Two update_document() calls with same anomaly_log.yaml produce identical file", "DHF-016")
+    report.auto_save("dhf016_update_document_idempotent", evidence_output_dir)
+    assert not report.has_errors, report.summary()
+
+
+@pytest.mark.requirement("DHF-016")
+def test_anomaly_log_update_document_replaces_stale_rows(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="DHF-016: update_document replaces stale sentinel content with current YAML data")
+
+    yaml_file = tmp_path / "anomaly_log.yaml"
+    yaml_file.write_text(ANOMALY_LOG_TWO_ENTRIES)
+    doc = tmp_path / "anomaly_log.md"
+    doc.write_text(_doc_with_sentinels("ANOMALY_TABLE", "| stale | data | here |\n"))
+
+    AnomalyLogGenerator(yaml_file).update_document(doc)
+
+    content = doc.read_text()
+    assert "ANO-001" in content
+    assert "stale | data | here" not in content
+
+    report.info("update_document replaced stale sentinel section with current anomaly rows", "DHF-016")
+    report.auto_save("dhf016_update_document_replaces_stale", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 

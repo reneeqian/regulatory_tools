@@ -3,6 +3,7 @@
 import pytest
 from unittest.mock import patch
 
+from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.quality.forge_integration import (
     write_forge_health_to_summary,
     update_readme_forge_health,
@@ -44,13 +45,20 @@ def minimal_forge_summary():
 
 @pytest.mark.requirement("VER-004")
 @pytest.mark.requirement("INF-003")
-def test_write_forge_health_to_summary_writes_to_step_summary(tmp_path, monkeypatch, sample_forge_summary):
+def test_write_forge_health_to_summary_writes_to_step_summary(
+    tmp_path, monkeypatch, sample_forge_summary, evidence_output_dir
+):
+    report = EvidenceReport(subject="write_forge_health_to_summary writes structured markdown to GITHUB_STEP_SUMMARY")
     summary_file = tmp_path / "summary.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary_file))
 
     write_forge_health_to_summary(sample_forge_summary)
 
     content = summary_file.read_text()
+    report.info(f"summary_file written, grade=A present={('Grade: A' in content)}", "VER-004")
+    report.info(f"artifact persisted to GITHUB_STEP_SUMMARY path", "INF-003")
+    report.auto_save("ver004_inf003_write_forge_health_to_summary_writes_to_step_summary", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     assert "## Forge Health" in content
     assert "Grade: A" in content
     assert "0.92" in content
@@ -59,40 +67,59 @@ def test_write_forge_health_to_summary_writes_to_step_summary(tmp_path, monkeypa
 
 
 @pytest.mark.requirement("VER-004")
-def test_write_forge_health_to_summary_skips_skipped_collectors(tmp_path, monkeypatch, sample_forge_summary):
+def test_write_forge_health_to_summary_skips_skipped_collectors(
+    tmp_path, monkeypatch, sample_forge_summary, evidence_output_dir
+):
+    report = EvidenceReport(subject="write_forge_health_to_summary omits skipped collectors from output")
     summary_file = tmp_path / "summary.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary_file))
 
     write_forge_health_to_summary(sample_forge_summary)
 
     content = summary_file.read_text()
+    report.info(f"dead_code absent from output={('Dead Code' not in content)}", "VER-004")
+    report.auto_save("ver004_write_forge_health_to_summary_skips_skipped_collectors", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     assert "Dead Code" not in content
 
 
 @pytest.mark.requirement("VER-004")
-def test_write_forge_health_to_summary_stdout_fallback(capsys, monkeypatch, sample_forge_summary):
+def test_write_forge_health_to_summary_stdout_fallback(
+    capsys, monkeypatch, sample_forge_summary, evidence_output_dir
+):
+    report = EvidenceReport(subject="write_forge_health_to_summary falls back to stdout when GITHUB_STEP_SUMMARY unset")
     monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
 
     write_forge_health_to_summary(sample_forge_summary)
 
     captured = capsys.readouterr()
+    report.info(f"stdout contains grade={('Grade: A' in captured.out)}, score={('0.92' in captured.out)}", "VER-004")
+    report.auto_save("ver004_write_forge_health_to_summary_stdout_fallback", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     assert "Grade: A" in captured.out
     assert "0.92" in captured.out
 
 
 @pytest.mark.requirement("VER-004")
-def test_write_forge_health_to_summary_empty_collectors(capsys, monkeypatch, minimal_forge_summary):
+def test_write_forge_health_to_summary_empty_collectors(
+    capsys, monkeypatch, minimal_forge_summary, evidence_output_dir
+):
+    report = EvidenceReport(subject="write_forge_health_to_summary renders correctly with empty collectors dict")
     monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
 
     write_forge_health_to_summary(minimal_forge_summary)
 
     captured = capsys.readouterr()
+    report.info(f"grade=B present={('Grade: B' in captured.out)}, score=0.80 present={('0.80' in captured.out)}", "VER-004")
+    report.auto_save("ver004_write_forge_health_to_summary_empty_collectors", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     assert "Grade: B" in captured.out
     assert "0.80" in captured.out
 
 
 @pytest.mark.requirement("VER-004")
-def test_write_forge_health_to_summary_none_score(capsys, monkeypatch):
+def test_write_forge_health_to_summary_none_score(capsys, monkeypatch, evidence_output_dir):
+    report = EvidenceReport(subject="write_forge_health_to_summary renders N/A when overall_score is None")
     monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
     summary = {
         "grade": "C",
@@ -106,6 +133,9 @@ def test_write_forge_health_to_summary_none_score(capsys, monkeypatch):
     write_forge_health_to_summary(summary)
 
     captured = capsys.readouterr()
+    report.info(f"N/A rendered for None score={('N/A' in captured.out)}", "VER-004")
+    report.auto_save("ver004_write_forge_health_to_summary_none_score", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     assert "N/A" in captured.out
 
 
@@ -115,8 +145,9 @@ def test_write_forge_health_to_summary_none_score(capsys, monkeypatch):
 
 @pytest.mark.requirement("VER-004")
 @pytest.mark.requirement("SYS-002")
-def test_run_tests_and_trace_update_readme_false_calls_summary(tmp_path, monkeypatch):
+def test_run_tests_and_trace_update_readme_false_calls_summary(tmp_path, monkeypatch, evidence_output_dir):
     """update_readme=False should call write_forge_health_to_summary, not update_readme_forge_health."""
+    report = EvidenceReport(subject="run_tests_and_trace: update_readme=False routes to write_forge_health_to_summary")
     from regulatory_tools.testing.run_tests_and_trace import run_tests_and_trace
 
     fake_summary = {
@@ -132,14 +163,19 @@ def test_run_tests_and_trace_update_readme_false_calls_summary(tmp_path, monkeyp
 
         run_tests_and_trace(tmp_path, min_grade=None, update_readme=False)
 
+    report.info(f"write_forge_health_to_summary called once={mock_summary.call_count == 1}", "VER-004")
+    report.info(f"update_readme_forge_health not called={mock_readme.call_count == 0}", "SYS-002")
+    report.auto_save("ver004_sys002_run_tests_and_trace_update_readme_false_calls_summary", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     mock_summary.assert_called_once_with(fake_summary)
     mock_readme.assert_not_called()
 
 
 @pytest.mark.requirement("VER-004")
 @pytest.mark.requirement("SYS-002")
-def test_run_tests_and_trace_update_readme_true_calls_readme(tmp_path, monkeypatch):
+def test_run_tests_and_trace_update_readme_true_calls_readme(tmp_path, monkeypatch, evidence_output_dir):
     """update_readme=True (default) should call update_readme_forge_health."""
+    report = EvidenceReport(subject="run_tests_and_trace: update_readme=True (default) routes to update_readme_forge_health")
     from regulatory_tools.testing.run_tests_and_trace import run_tests_and_trace
 
     fake_summary = {
@@ -155,6 +191,10 @@ def test_run_tests_and_trace_update_readme_true_calls_readme(tmp_path, monkeypat
 
         run_tests_and_trace(tmp_path, min_grade=None, update_readme=True)
 
+    report.info(f"update_readme_forge_health called once={mock_readme.call_count == 1}", "SYS-002")
+    report.info(f"write_forge_health_to_summary not called={mock_summary.call_count == 0}", "VER-004")
+    report.auto_save("ver004_sys002_run_tests_and_trace_update_readme_true_calls_readme", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     mock_readme.assert_called_once_with(tmp_path, fake_summary)
     mock_summary.assert_not_called()
 
@@ -164,7 +204,8 @@ def test_run_tests_and_trace_update_readme_true_calls_readme(tmp_path, monkeypat
 # ---------------------------------------------------------------------------
 
 @pytest.mark.requirement("DOC-002")
-def test_update_readme_forge_health_replaces_markers(tmp_path):
+def test_update_readme_forge_health_replaces_markers(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="update_readme_forge_health replaces existing forge-health marker block in README")
     readme = tmp_path / "README.md"
     readme.write_text(
         "# Project\n\n"
@@ -184,6 +225,12 @@ def test_update_readme_forge_health_replaces_markers(tmp_path):
     update_readme_forge_health(tmp_path, summary)
 
     content = readme.read_text()
+    report.info(
+        f"old_content_removed={('old content' not in content)}, grade_A_present={('Grade: A' in content)}",
+        "DOC-002",
+    )
+    report.auto_save("doc002_update_readme_forge_health_replaces_markers", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     assert "old content" not in content
     assert "Grade: A" in content
     assert "<!-- forge-health-start -->" in content
@@ -191,7 +238,8 @@ def test_update_readme_forge_health_replaces_markers(tmp_path):
 
 
 @pytest.mark.requirement("DOC-002")
-def test_update_readme_forge_health_appends_when_no_markers(tmp_path):
+def test_update_readme_forge_health_appends_when_no_markers(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="update_readme_forge_health appends forge health section when README has no markers")
     readme = tmp_path / "README.md"
     readme.write_text("# Project\n\nSome content.\n")
     summary = {
@@ -204,12 +252,22 @@ def test_update_readme_forge_health_appends_when_no_markers(tmp_path):
     update_readme_forge_health(tmp_path, summary)
 
     content = readme.read_text()
+    report.info(
+        f"forge_health_heading_added={('## Forge Health' in content)}, markers_added={('<!-- forge-health-start -->' in content)}",
+        "DOC-002",
+    )
+    report.auto_save("doc002_update_readme_forge_health_appends_when_no_markers", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     assert "## Forge Health" in content
     assert "<!-- forge-health-start -->" in content
 
 
 @pytest.mark.requirement("DOC-002")
-def test_update_readme_forge_health_no_readme_is_noop(tmp_path):
+def test_update_readme_forge_health_no_readme_is_noop(tmp_path, evidence_output_dir):
+    report = EvidenceReport(subject="update_readme_forge_health is a no-op when README.md does not exist")
     summary = {"grade": "A", "overall_score": 0.9, "generated_at": "2026-05-01T00:00:00", "collectors": {}}
     update_readme_forge_health(tmp_path, summary)
+    report.info(f"no README created when absent={not (tmp_path / 'README.md').exists()}", "DOC-002")
+    report.auto_save("doc002_update_readme_forge_health_no_readme_is_noop", evidence_output_dir)
+    assert not report.has_errors, report.summary()
     assert not (tmp_path / "README.md").exists()
