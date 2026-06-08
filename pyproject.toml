@@ -22,6 +22,9 @@ dev = [
     "pip-audit",
 ]
 
+[project.scripts]
+regulatory-summary = "regulatory_tools.summary.__main__:main"
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
