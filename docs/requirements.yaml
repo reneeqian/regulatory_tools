@@ -86,6 +86,22 @@ requirements:
       The system shall support generation of summary documentation
       describing declared requirements and their associated metadata.
 
+  - id: DOC-005
+    title: Project Status Summary Generation
+    description: >
+      The system shall generate a single human-readable Markdown file aggregating the
+      current state of a project, including forge health metrics, traceability coverage
+      statistics, user needs, requirements by domain, SOUP inventory, hazard summary,
+      open anomalies, recent commits, and open GitHub issues with hyperlinks,
+      from the project's docs/ folder and git/GitHub metadata.
+    rationale: >
+      Developers returning to a project after time away need a fast orientation snapshot
+      without opening every individual regulatory document. A single aggregated summary
+      reduces context-switching overhead.
+    verification: >
+      Integration test verifying all sections appear in generated output for a project
+      root with all docs/ files present.
+
   # ==============================
   # Infrastructure Requirements
   # ==============================
