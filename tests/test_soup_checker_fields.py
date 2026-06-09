@@ -1,13 +1,13 @@
 """Tests for check_soup_fields() — VER-008.
 These tests fail until check_soup_fields() is implemented in soup_checker.py.
 """
+
 import textwrap
 
 import pytest
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.quality.soup_checker import check_soup_fields
-
 
 SOUP_COMPLETE = textwrap.dedent("""\
     soup:
@@ -91,16 +91,18 @@ def test_soup_fields_fully_populated_entry_passes(tmp_path, evidence_output_dir)
 
 @pytest.mark.requirement("VER-008")
 def test_soup_fields_purpose_triggers_violation(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_soup_fields reports violation when entry uses 'purpose' instead of 'intended_use'")
+    report = EvidenceReport(
+        subject="check_soup_fields reports violation when entry uses 'purpose' instead of 'intended_use'"
+    )
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "soup.yaml").write_text(SOUP_USES_PURPOSE)
 
     result = check_soup_fields(tmp_path)
 
     assert result["found"] is True
-    assert any("purpose" in v.lower() or "intended_use" in v.lower() for v in result["violations"]), (
-        f"Expected a violation about 'purpose'/'intended_use', got: {result['violations']}"
-    )
+    assert any(
+        "purpose" in v.lower() or "intended_use" in v.lower() for v in result["violations"]
+    ), f"Expected a violation about 'purpose'/'intended_use', got: {result['violations']}"
 
     report.info(f"'purpose' field name → violation: {result['violations']}", "VER-008")
     report.auto_save("ver008_soup_fields_purpose_violation", evidence_output_dir)
@@ -109,7 +111,9 @@ def test_soup_fields_purpose_triggers_violation(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("VER-008")
 def test_soup_fields_missing_risk_triggers_violation(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_soup_fields reports violation when 'risk' field is absent")
+    report = EvidenceReport(
+        subject="check_soup_fields reports violation when 'risk' field is absent"
+    )
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "soup.yaml").write_text(SOUP_MISSING_RISK)
 
@@ -127,7 +131,9 @@ def test_soup_fields_missing_risk_triggers_violation(tmp_path, evidence_output_d
 
 @pytest.mark.requirement("VER-008")
 def test_soup_fields_missing_verified_by_triggers_violation(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_soup_fields reports violation when 'verified_by' field is absent")
+    report = EvidenceReport(
+        subject="check_soup_fields reports violation when 'verified_by' field is absent"
+    )
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "soup.yaml").write_text(SOUP_MISSING_VERIFIED_BY)
 
@@ -145,7 +151,9 @@ def test_soup_fields_missing_verified_by_triggers_violation(tmp_path, evidence_o
 
 @pytest.mark.requirement("VER-008")
 def test_soup_fields_missing_intended_use_triggers_violation(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_soup_fields reports violation when 'intended_use' field is absent")
+    report = EvidenceReport(
+        subject="check_soup_fields reports violation when 'intended_use' field is absent"
+    )
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "soup.yaml").write_text(SOUP_MISSING_INTENDED_USE)
 
@@ -163,7 +171,9 @@ def test_soup_fields_missing_intended_use_triggers_violation(tmp_path, evidence_
 
 @pytest.mark.requirement("VER-008")
 def test_soup_fields_absent_soup_yaml_returns_not_found(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_soup_fields returns found=False when docs/soup.yaml absent")
+    report = EvidenceReport(
+        subject="check_soup_fields returns found=False when docs/soup.yaml absent"
+    )
 
     result = check_soup_fields(tmp_path)
 
@@ -184,7 +194,9 @@ def test_soup_fields_violation_per_entry(tmp_path, evidence_output_dir):
     result = check_soup_fields(tmp_path)
 
     assert result["found"] is True
-    assert len(result["violations"]) >= 1, "torch entry with 'purpose' must generate at least one violation"
+    assert len(result["violations"]) >= 1, (
+        "torch entry with 'purpose' must generate at least one violation"
+    )
     assert not any("pyyaml" in v for v in result["violations"]), (
         "pyyaml entry is fully populated; must not appear in violations"
     )

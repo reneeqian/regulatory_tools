@@ -1,4 +1,5 @@
 """Tests for regulatory_tools.dhf.impact_analyzer (DHF-015)."""
+
 from __future__ import annotations
 
 import subprocess
@@ -13,7 +14,9 @@ from regulatory_tools.evidence.evidence_report import EvidenceReport
 @pytest.mark.requirement("DHF-015")
 def test_requirements_change_triggers_auto_section(evidence_output_dir):
     """Changing docs/requirements.yaml produces an auto section for system_requirements.md."""
-    report = EvidenceReport(subject="DHFImpactAnalyzer: requirements.yaml change triggers auto section")
+    report = EvidenceReport(
+        subject="DHFImpactAnalyzer: requirements.yaml change triggers auto section"
+    )
     analyzer = DHFImpactAnalyzer()
     result = analyzer.analyze(["docs/requirements.yaml"])
     auto_files = [s.dhf_file for s in result.auto_sections]
@@ -26,7 +29,9 @@ def test_requirements_change_triggers_auto_section(evidence_output_dir):
 @pytest.mark.requirement("DHF-015")
 def test_risk_controls_change_triggers_manual_section(evidence_output_dir):
     """Changing docs/risk_controls.yaml produces a manual section for risk_control_measures.md."""
-    report = EvidenceReport(subject="DHFImpactAnalyzer: risk_controls.yaml change triggers manual section")
+    report = EvidenceReport(
+        subject="DHFImpactAnalyzer: risk_controls.yaml change triggers manual section"
+    )
     analyzer = DHFImpactAnalyzer()
     result = analyzer.analyze(["docs/risk_controls.yaml"])
     manual_files = [s.dhf_file for s in result.manual_sections]
@@ -70,8 +75,13 @@ def test_cli_entry_point_exits_zero(evidence_output_dir):
     """CLI exits 0 and prints the DHF impact summary including generate_dhf.py instruction."""
     report = EvidenceReport(subject="DHFImpactAnalyzer CLI: exits 0 and prints structured summary")
     result = subprocess.run(
-        [sys.executable, "-m", "regulatory_tools.dhf.impact_analyzer",
-         "--changed", "docs/requirements.yaml"],
+        [
+            sys.executable,
+            "-m",
+            "regulatory_tools.dhf.impact_analyzer",
+            "--changed",
+            "docs/requirements.yaml",
+        ],
         capture_output=True,
         text=True,
     )

@@ -9,7 +9,9 @@ from .pytest_runner import run_pytest_with_coverage
 _GRADE_ORDER: dict[str, int] = {"A": 4, "B": 3, "C": 2, "D": 1, "F": 0}
 
 
-def run_tests_and_trace(project_root: Path, min_grade: str | None = "B", *, update_readme: bool = True) -> None:
+def run_tests_and_trace(
+    project_root: Path, min_grade: str | None = "B", *, update_readme: bool = True
+) -> None:
     """
     Full verification pipeline for regulated projects.
 
@@ -31,7 +33,11 @@ def run_tests_and_trace(project_root: Path, min_grade: str | None = "B", *, upda
         print("[run_tests_and_trace] forge not installed — skipping grade check and README update.")
         return
 
-    from ..quality.forge_integration import update_readme_forge_health, write_forge_health_to_summary
+    from ..quality.forge_integration import (
+        update_readme_forge_health,
+        write_forge_health_to_summary,
+    )
+
     if update_readme:
         update_readme_forge_health(project_root, forge_summary)
     else:
@@ -57,21 +63,24 @@ def run_tests_and_trace(project_root: Path, min_grade: str | None = "B", *, upda
 
 def _check_linked_gate(project_root: Path) -> None:
     from ..quality.linked_checker import check_linked_requirements
+
     result = check_linked_requirements(project_root)
     if result["skipped"]:
         return
     if result["linked_ids"]:
         ids = ", ".join(result["linked_ids"])
-        print(f"[FAIL] {len(result['linked_ids'])} LINKED requirement(s) — tests exist but no evidence: {ids}")
+        print(
+            f"[FAIL] {len(result['linked_ids'])} LINKED requirement(s) — tests exist but no evidence: {ids}"
+        )
         print("[FAIL] Add EvidenceReport.auto_save() to each linked test to convert LINKED → PASS.")
         sys.exit(1)
-    print(f"[OK] LINKED gate: 0 LINKED requirements")
+    print("[OK] LINKED gate: 0 LINKED requirements")
 
 
 def _run_quality_checks(project_root: Path) -> None:
-    from ..quality.soup_checker import check_soup_inventory, check_soup_fields
-    from ..quality.rsk_checker import check_rsk_requirements
     from ..quality.anomaly_checker import check_anomaly_log
+    from ..quality.rsk_checker import check_rsk_requirements
+    from ..quality.soup_checker import check_soup_fields, check_soup_inventory
     from ..quality.version_checker import check_version_baseline
 
     soup = check_soup_inventory(project_root)
@@ -113,4 +122,6 @@ def _run_quality_checks(project_root: Path) -> None:
         for v in version["violations"]:
             print(f"[WARN] Version: {v}")
     else:
-        print(f"[OK] Version baseline: {version['pyproject_version']} matches tag v{version['latest_tag']}")
+        print(
+            f"[OK] Version baseline: {version['pyproject_version']} matches tag v{version['latest_tag']}"
+        )

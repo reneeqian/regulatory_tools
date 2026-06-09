@@ -2,6 +2,7 @@
 Integration tests for regulatory_tools.dhf.generator — DHFGenerator (DHF-006, DHF-009).
 These tests must fail before DHFGenerator exists.
 """
+
 import json
 import textwrap
 from pathlib import Path
@@ -9,9 +10,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from regulatory_tools.evidence.evidence_report import EvidenceReport
-from regulatory_tools.dhf.generator import DHFGenerator, DHFGenerationReport
+from regulatory_tools.dhf.generator import DHFGenerationReport, DHFGenerator
 from regulatory_tools.dhf.validator import DHFValidationError
+from regulatory_tools.evidence.evidence_report import EvidenceReport
 
 
 def _mock_proc(stdout: str) -> MagicMock:
@@ -83,11 +84,19 @@ def _make_dhf_tree(tmp_path: Path) -> tuple[Path, Path]:
     evidence_runs.mkdir()
     run_dir = evidence_runs / "20260501_120000"
     run_dir.mkdir()
-    (run_dir / "test_abc.json").write_text(json.dumps({
-        "test_id": "test_abc", "subject": "Test ABC", "result": "PASS",
-        "requirement_tags": ["SYS-001"], "requirements": [], "issues": [],
-        "timestamp": "2026-05-01T12:00:00",
-    }))
+    (run_dir / "test_abc.json").write_text(
+        json.dumps(
+            {
+                "test_id": "test_abc",
+                "subject": "Test ABC",
+                "result": "PASS",
+                "requirement_tags": ["SYS-001"],
+                "requirements": [],
+                "issues": [],
+                "timestamp": "2026-05-01T12:00:00",
+            }
+        )
+    )
 
     traceability = tmp_path / "data" / "traceability_matrix.md"
     traceability.write_text(TRACEABILITY_MD)
@@ -98,25 +107,26 @@ def _make_dhf_tree(tmp_path: Path) -> tuple[Path, Path]:
     # Templates root with one missing section
     templates = tmp_path / "templates"
     (templates / "10_software_development_plan").mkdir(parents=True)
-    (templates / "10_software_development_plan" / "sdp.md").write_text(
-        "# SDP — {{PROJECT_NAME}}\n"
-    )
+    (templates / "10_software_development_plan" / "sdp.md").write_text("# SDP — {{PROJECT_NAME}}\n")
 
     # DHF root — has existing section 05 but not 10
     dhf_root = tmp_path / "dhf"
     (dhf_root / "05_soup").mkdir(parents=True)
     (dhf_root / "05_soup" / "soup_register.md").write_text(
-        "# SOUP Register\n\n"
-        "<!-- DHF_SOUP_TABLE_START -->\n"
-        "<!-- DHF_SOUP_TABLE_END -->\n"
+        "# SOUP Register\n\n<!-- DHF_SOUP_TABLE_START -->\n<!-- DHF_SOUP_TABLE_END -->\n"
     )
 
     ctx_path = tmp_path / "dhf_context.yaml"
-    ctx_path.write_text(CONTEXT_TEMPLATE.format(
-        soup=soup, evidence_runs=evidence_runs,
-        requirements=reqs, traceability_matrix=traceability,
-        templates_root=templates, git_repo=git_repo,
-    ))
+    ctx_path.write_text(
+        CONTEXT_TEMPLATE.format(
+            soup=soup,
+            evidence_runs=evidence_runs,
+            requirements=reqs,
+            traceability_matrix=traceability,
+            templates_root=templates,
+            git_repo=git_repo,
+        )
+    )
 
     return dhf_root, ctx_path
 
@@ -125,9 +135,12 @@ def _make_dhf_tree(tmp_path: Path) -> tuple[Path, Path]:
 # Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.requirement("DHF-006")
 def test_generator_run_all_fills_placeholders(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-006: DHFGenerator.run_all() fills placeholders in existing DHF documents")
+    report = EvidenceReport(
+        subject="DHF-006: DHFGenerator.run_all() fills placeholders in existing DHF documents"
+    )
 
     dhf_root, ctx_path = _make_dhf_tree(tmp_path)
     # Add a doc with a placeholder
@@ -148,7 +161,9 @@ def test_generator_run_all_fills_placeholders(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-006")
 def test_generator_run_all_updates_soup_register(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-006: DHFGenerator.run_all() updates SOUP register sentinel section")
+    report = EvidenceReport(
+        subject="DHF-006: DHFGenerator.run_all() updates SOUP register sentinel section"
+    )
 
     dhf_root, ctx_path = _make_dhf_tree(tmp_path)
     gen = DHFGenerator.from_config(dhf_root=dhf_root, context_file=ctx_path)
@@ -164,7 +179,9 @@ def test_generator_run_all_updates_soup_register(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-005")
 def test_generator_run_all_scaffolds_missing_sections(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-005: DHFGenerator.run_all() scaffolds section 10 which is missing from dhf_root")
+    report = EvidenceReport(
+        subject="DHF-005: DHFGenerator.run_all() scaffolds section 10 which is missing from dhf_root"
+    )
 
     dhf_root, ctx_path = _make_dhf_tree(tmp_path)
     gen = DHFGenerator.from_config(dhf_root=dhf_root, context_file=ctx_path)
@@ -175,24 +192,23 @@ def test_generator_run_all_scaffolds_missing_sections(tmp_path, evidence_output_
     assert "COCA-prj" in sdp.read_text()
     assert len(result.scaffolded_sections) >= 1
 
-    report.info(f"section 10 scaffolded; sdp.md contains 'COCA-prj'", "DHF-005")
+    report.info("section 10 scaffolded; sdp.md contains 'COCA-prj'", "DHF-005")
     report.auto_save("dhf005_generator_scaffolds_missing", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-006")
 def test_generator_run_all_is_idempotent(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-006: DHFGenerator.run_all() twice produces no diff on second run")
+    report = EvidenceReport(
+        subject="DHF-006: DHFGenerator.run_all() twice produces no diff on second run"
+    )
 
     dhf_root, ctx_path = _make_dhf_tree(tmp_path)
     gen = DHFGenerator.from_config(dhf_root=dhf_root, context_file=ctx_path)
     gen.run_all()
 
     # Snapshot all file contents after first run
-    snapshots = {
-        p: p.read_text()
-        for p in sorted(dhf_root.rglob("*.md"))
-    }
+    snapshots = {p: p.read_text() for p in sorted(dhf_root.rglob("*.md"))}
 
     gen.run_all()
 
@@ -206,7 +222,9 @@ def test_generator_run_all_is_idempotent(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-009")
 def test_generator_raises_on_invalid_context(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-009: DHFGenerator.from_config raises DHFValidationError when context is invalid")
+    report = EvidenceReport(
+        subject="DHF-009: DHFGenerator.from_config raises DHFValidationError when context is invalid"
+    )
 
     dhf_root = tmp_path / "dhf"
     dhf_root.mkdir()
@@ -216,7 +234,9 @@ def test_generator_raises_on_invalid_context(tmp_path, evidence_output_dir):
     with pytest.raises(DHFValidationError):
         DHFGenerator.from_config(dhf_root=dhf_root, context_file=bad_ctx)
 
-    report.info("DHFGenerator.from_config raised DHFValidationError on incomplete context", "DHF-009")
+    report.info(
+        "DHFGenerator.from_config raised DHFValidationError on incomplete context", "DHF-009"
+    )
     report.auto_save("dhf009_generator_raises_on_invalid_context", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
@@ -271,9 +291,7 @@ def test_generator_run_all_updates_change_log(tmp_path, evidence_output_dir):
     (dhf_root / "09_cc").mkdir()
     changelog_doc = dhf_root / "09_cc" / "change_log.md"
     changelog_doc.write_text(
-        "# Change Log\n\n"
-        "<!-- DHF_CHANGE_LOG_START -->\n"
-        "<!-- DHF_CHANGE_LOG_END -->\n"
+        "# Change Log\n\n<!-- DHF_CHANGE_LOG_START -->\n<!-- DHF_CHANGE_LOG_END -->\n"
     )
 
     with patch("subprocess.run") as mock_run:
@@ -291,7 +309,9 @@ def test_generator_run_all_updates_change_log(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-006")
 def test_generation_report_tracks_modified_files(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-006: DHFGenerationReport.files_modified lists changed files")
+    report = EvidenceReport(
+        subject="DHF-006: DHFGenerationReport.files_modified lists changed files"
+    )
 
     dhf_root, ctx_path = _make_dhf_tree(tmp_path)
     (dhf_root / "intro.md").write_text("# {{PROJECT_NAME}}\n")

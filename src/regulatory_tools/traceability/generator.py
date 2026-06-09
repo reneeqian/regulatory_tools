@@ -190,17 +190,16 @@ def _sanitize_cell(text: str) -> str:
 
 
 def write_markdown(
-        matrix: list[dict[str, Any]],
-        output: Path,
-        req_coverage_summary: dict[str, Any] | None = None,
-        code_coverage_summary: dict[str, Any] | None = None,
-        forge_health: dict[str, Any] | None = None,
-    ) -> None:
+    matrix: list[dict[str, Any]],
+    output: Path,
+    req_coverage_summary: dict[str, Any] | None = None,
+    code_coverage_summary: dict[str, Any] | None = None,
+    forge_health: dict[str, Any] | None = None,
+) -> None:
 
     output.parent.mkdir(parents=True, exist_ok=True)
 
     with output.open("w") as f:
-
         f.write("<!-- AUTO-GENERATED FILE. DO NOT EDIT MANUALLY. -->\n\n")
         f.write("# Requirements Traceability Matrix\n\n")
 
@@ -209,7 +208,6 @@ def write_markdown(
         # ---------------------------------------------------------
 
         if req_coverage_summary:
-
             f.write("## Requirement Coverage\n\n")
 
             f.write(
@@ -222,7 +220,6 @@ def write_markdown(
         # ---------------------------------------------------------
 
         if code_coverage_summary:
-
             f.write("## Code Coverage\n\n")
 
             coverage = code_coverage_summary.get("coverage")
@@ -233,8 +230,7 @@ def write_markdown(
                 f.write(f"**Line Coverage:** {coverage:.1f}%\n\n")
 
             f.write(
-                "Detailed uncovered lines saved in "
-                "`artifacts/coverage/uncovered_lines.txt`\n\n"
+                "Detailed uncovered lines saved in `artifacts/coverage/uncovered_lines.txt`\n\n"
             )
 
         # ---------------------------------------------------------
@@ -288,7 +284,6 @@ def write_markdown(
         )
 
         for row in matrix:
-
             f.write(
                 f"| {_sanitize_cell(row['requirement_id'])} "
                 f"| {_sanitize_cell(row.get('source_file', ''))} "
@@ -302,7 +297,6 @@ def write_markdown(
                 f"| {_sanitize_cell(row['evidence_files'])} "
                 f"| {_sanitize_cell(row['status'])} |\n"
             )
-
 
         f.write("\n\n---\n")
 
@@ -324,17 +318,13 @@ def write_markdown(
         f.write(f"Tested: {tested}\n\n")
         f.write(f"Failures: {failed}\n")
 
-def apply_test_markers(
-    matrix: list[dict[str, Any]], marker_links: dict[str, list[str]]
-) -> None:
+
+def apply_test_markers(matrix: list[dict[str, Any]], marker_links: dict[str, list[str]]) -> None:
 
     for row in matrix:
-
         req_id = row["requirement_id"]
 
-        existing = set(
-            t.strip() for t in row.get("tests", "").split(",") if t.strip()
-        )
+        existing = set(t.strip() for t in row.get("tests", "").split(",") if t.strip())
 
         markers = set(marker_links.get(req_id, []))
 

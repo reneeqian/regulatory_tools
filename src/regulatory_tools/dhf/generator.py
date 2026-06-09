@@ -118,9 +118,7 @@ class DHFGenerator:
 
     def scaffold_missing_sections(self) -> DHFGenerationReport:
         report = DHFGenerationReport()
-        scaffolder = SectionScaffolder(
-            self._ctx.templates_root, self._root, self._filler
-        )
+        scaffolder = SectionScaffolder(self._ctx.templates_root, self._root, self._filler)
         created = scaffolder.scaffold_missing()
         report.scaffolded_sections = created
         report.files_modified = list(created)

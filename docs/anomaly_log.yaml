@@ -6,4 +6,15 @@ metadata:
     in the software. Open anomalies must be resolved or formally deferred
     before a version baseline is tagged.
 
-anomalies: []
+anomalies:
+  - id: ANO-001
+    date: "2026-06-08"
+    summary: "SOUP CVE: torch 2.9.1 — PYSEC-2026-139 (deserialization in pt2 loading handler)"
+    affected_requirements: [RSK-001]
+    severity: low
+    status: open
+    resolution: >
+      No upstream fix available as of 2026-06-08. regulatory_tools does not use torch at runtime;
+      torch is a transitive dependency of the shared dev environment. The vulnerability requires
+      a local attacker supplying a malicious .pt2 file to the pt2 loader. Risk accepted pending
+      upstream torch patch release.

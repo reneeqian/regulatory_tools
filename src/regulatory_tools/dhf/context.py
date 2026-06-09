@@ -8,8 +8,15 @@ import yaml
 
 from regulatory_tools.dhf.validator import DHFValidationError
 
-_REQUIRED_FIELDS = ("project_name", "responsible_person", "code_repos", "author",
-                    "data_sources", "templates_root", "git_repo")
+_REQUIRED_FIELDS = (
+    "project_name",
+    "responsible_person",
+    "code_repos",
+    "author",
+    "data_sources",
+    "templates_root",
+    "git_repo",
+)
 _REQUIRED_DATA_SOURCES = ("soup", "evidence_runs", "requirements", "traceability_matrix")
 
 

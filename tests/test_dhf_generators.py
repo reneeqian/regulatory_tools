@@ -2,6 +2,7 @@
 Tests for regulatory_tools.dhf.generators (DHF-003, DHF-008, DHF-016).
 These tests must fail before the generators exist.
 """
+
 import json
 import textwrap
 from pathlib import Path
@@ -9,23 +10,22 @@ from unittest.mock import patch
 
 import pytest
 
-from regulatory_tools.evidence.evidence_report import EvidenceReport
-
+from regulatory_tools.dhf.generators.anomaly_log import (
+    AnomalyLogGenerator,  # fails until DHF-016 implemented
+)
+from regulatory_tools.dhf.generators.baseline_register import BaselineRegisterGenerator
+from regulatory_tools.dhf.generators.change_log import ChangeLogGenerator
+from regulatory_tools.dhf.generators.evidence_index import EvidenceIndexGenerator
+from regulatory_tools.dhf.generators.hazard_analysis import HazardAnalysisGenerator
 
 # ---------------------------------------------------------------------------
 # Imports (fail until generators exist)
 # ---------------------------------------------------------------------------
-
 from regulatory_tools.dhf.generators.soup_table import SOUPTableGenerator
-from regulatory_tools.dhf.generators.evidence_index import EvidenceIndexGenerator
 from regulatory_tools.dhf.generators.system_requirements import SystemRequirementsGenerator
 from regulatory_tools.dhf.generators.traceability_index import TraceabilityIndexGenerator
-from regulatory_tools.dhf.generators.baseline_register import BaselineRegisterGenerator
-from regulatory_tools.dhf.generators.change_log import ChangeLogGenerator
-from regulatory_tools.dhf.generators.hazard_analysis import HazardAnalysisGenerator
-from regulatory_tools.dhf.generators.anomaly_log import AnomalyLogGenerator  # fails until DHF-016 implemented
 from regulatory_tools.dhf.requirements_reader import RequirementsReader
-
+from regulatory_tools.evidence.evidence_report import EvidenceReport
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -36,12 +36,7 @@ END_COMMENT = "<!-- DHF_{TAG}_END -->"
 
 
 def _doc_with_sentinels(tag: str, existing_rows: str = "") -> str:
-    return (
-        f"# Doc\n\n"
-        f"<!-- DHF_{tag}_START -->\n"
-        f"{existing_rows}"
-        f"<!-- DHF_{tag}_END -->\n"
-    )
+    return f"# Doc\n\n<!-- DHF_{tag}_START -->\n{existing_rows}<!-- DHF_{tag}_END -->\n"
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +58,9 @@ SOUP_YAML = textwrap.dedent("""
 
 @pytest.mark.requirement("DHF-003")
 def test_soup_table_generates_rows(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-003: SOUPTableGenerator produces markdown table rows from soup.yaml")
+    report = EvidenceReport(
+        subject="DHF-003: SOUPTableGenerator produces markdown table rows from soup.yaml"
+    )
 
     soup_file = tmp_path / "soup.yaml"
     soup_file.write_text(SOUP_YAML)
@@ -76,14 +73,19 @@ def test_soup_table_generates_rows(tmp_path, evidence_output_dir):
     assert "BSD-3-Clause" in rows
     assert "torch" in rows
 
-    report.info(f"generate_rows() produced {len(rows.splitlines())} lines covering numpy and torch", "DHF-003")
+    report.info(
+        f"generate_rows() produced {len(rows.splitlines())} lines covering numpy and torch",
+        "DHF-003",
+    )
     report.auto_save("dhf003_soup_table_rows", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-003")
 def test_soup_table_update_document_replaces_sentinel_section(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-003: SOUPTableGenerator.update_document() replaces sentinel section in-place")
+    report = EvidenceReport(
+        subject="DHF-003: SOUPTableGenerator.update_document() replaces sentinel section in-place"
+    )
 
     soup_file = tmp_path / "soup.yaml"
     soup_file.write_text(SOUP_YAML)
@@ -105,22 +107,31 @@ def test_soup_table_update_document_replaces_sentinel_section(tmp_path, evidence
 # EvidenceIndexGenerator
 # ---------------------------------------------------------------------------
 
-def _write_evidence_json(run_dir: Path, name: str, subject: str, result: str, tags: list[str]) -> None:
+
+def _write_evidence_json(
+    run_dir: Path, name: str, subject: str, result: str, tags: list[str]
+) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
-    (run_dir / f"{name}.json").write_text(json.dumps({
-        "test_id": name,
-        "subject": subject,
-        "timestamp": "2026-05-01T12:00:00",
-        "result": result,
-        "requirement_tags": tags,
-        "requirements": [],
-        "issues": [],
-    }))
+    (run_dir / f"{name}.json").write_text(
+        json.dumps(
+            {
+                "test_id": name,
+                "subject": subject,
+                "timestamp": "2026-05-01T12:00:00",
+                "result": result,
+                "requirement_tags": tags,
+                "requirements": [],
+                "issues": [],
+            }
+        )
+    )
 
 
 @pytest.mark.requirement("DHF-003")
 def test_evidence_index_generates_rows(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-003: EvidenceIndexGenerator produces table rows from evidence JSON files")
+    report = EvidenceReport(
+        subject="DHF-003: EvidenceIndexGenerator produces table rows from evidence JSON files"
+    )
 
     run_dir = tmp_path / "evidence_runs" / "20260501_120000"
     _write_evidence_json(run_dir, "test_abc", "Test ABC subject", "PASS", ["SYS-001"])
@@ -139,7 +150,9 @@ def test_evidence_index_generates_rows(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-003")
 def test_evidence_index_update_document_replaces_sentinel_section(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-003: EvidenceIndexGenerator.update_document() replaces sentinel section")
+    report = EvidenceReport(
+        subject="DHF-003: EvidenceIndexGenerator.update_document() replaces sentinel section"
+    )
 
     run_dir = tmp_path / "evidence_runs" / "20260501_120000"
     _write_evidence_json(run_dir, "test_xyz", "Test XYZ", "PASS", ["DAT-001"])
@@ -152,14 +165,18 @@ def test_evidence_index_update_document_replaces_sentinel_section(tmp_path, evid
     assert "test_xyz" in content
     assert "stale | rows" not in content
 
-    report.info("update_document replaced sentinel section with current evidence entries", "DHF-003")
+    report.info(
+        "update_document replaced sentinel section with current evidence entries", "DHF-003"
+    )
     report.auto_save("dhf003_evidence_index_update_document", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-003")
 def test_evidence_index_empty_dir_produces_empty_rows(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-003: EvidenceIndexGenerator returns empty string when no JSON files exist")
+    report = EvidenceReport(
+        subject="DHF-003: EvidenceIndexGenerator returns empty string when no JSON files exist"
+    )
 
     (tmp_path / "evidence_runs").mkdir()
     gen = EvidenceIndexGenerator(tmp_path / "evidence_runs")
@@ -200,7 +217,9 @@ TYPED_REQS_YAML = textwrap.dedent("""
 
 @pytest.mark.requirement("DHF-008")
 def test_system_requirements_domain_count_table(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-008: SystemRequirementsGenerator produces domain count table from requirements.yaml")
+    report = EvidenceReport(
+        subject="DHF-008: SystemRequirementsGenerator produces domain count table from requirements.yaml"
+    )
 
     reqs_file = tmp_path / "requirements.yaml"
     reqs_file.write_text(TYPED_REQS_YAML)
@@ -212,14 +231,16 @@ def test_system_requirements_domain_count_table(tmp_path, evidence_output_dir):
     assert "UN" in rows or "user_need" in rows.lower()
     assert "RSK" in rows
 
-    report.info(f"generate_rows() produced table with domain/type breakdown", "DHF-008")
+    report.info("generate_rows() produced table with domain/type breakdown", "DHF-008")
     report.auto_save("dhf008_system_requirements_domain_table", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-008")
 def test_system_requirements_counts_are_correct(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-008: SystemRequirementsGenerator counts match requirements.yaml exactly")
+    report = EvidenceReport(
+        subject="DHF-008: SystemRequirementsGenerator counts match requirements.yaml exactly"
+    )
 
     reqs_file = tmp_path / "requirements.yaml"
     reqs_file.write_text(TYPED_REQS_YAML)
@@ -269,7 +290,9 @@ SPLIT_DESIGN_YAML = textwrap.dedent("""\
 
 @pytest.mark.requirement("DHF-012")
 def test_system_requirements_by_source_file_table(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-012: SystemRequirementsGenerator output includes 'By Source File' table when loaded from multiple files")
+    report = EvidenceReport(
+        subject="DHF-012: SystemRequirementsGenerator output includes 'By Source File' table when loaded from multiple files"
+    )
 
     srs = tmp_path / "requirements.yaml"
     srs.write_text(SPLIT_SRS_YAML)
@@ -279,8 +302,9 @@ def test_system_requirements_by_source_file_table(tmp_path, evidence_output_dir)
     gen = SystemRequirementsGenerator(RequirementsReader([srs, design]))
     rows = gen.generate_rows()
 
-    assert "By Source File" in rows or "source file" in rows.lower(), \
+    assert "By Source File" in rows or "source file" in rows.lower(), (
         "Expected 'By Source File' section in generated rows"
+    )
     assert "requirements" in rows
     assert "design" in rows
 
@@ -310,7 +334,9 @@ TRACEABILITY_MD = textwrap.dedent("""
 
 @pytest.mark.requirement("DHF-003")
 def test_traceability_index_parses_coverage_stats(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-003: TraceabilityIndexGenerator parses coverage and grade from traceability_matrix.md")
+    report = EvidenceReport(
+        subject="DHF-003: TraceabilityIndexGenerator parses coverage and grade from traceability_matrix.md"
+    )
 
     matrix_file = tmp_path / "traceability_matrix.md"
     matrix_file.write_text(TRACEABILITY_MD)
@@ -321,7 +347,7 @@ def test_traceability_index_parses_coverage_stats(tmp_path, evidence_output_dir)
     assert "100.0%" in rows or "56" in rows
     assert "89.6%" in rows or "Grade" in rows or "B" in rows
 
-    report.info(f"generate_rows() extracted coverage/grade stats from matrix", "DHF-003")
+    report.info("generate_rows() extracted coverage/grade stats from matrix", "DHF-003")
     report.auto_save("dhf003_traceability_index_stats", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
@@ -330,9 +356,12 @@ def test_traceability_index_parses_coverage_stats(tmp_path, evidence_output_dir)
 # BaselineRegisterGenerator
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.requirement("DHF-003")
 def test_baseline_register_generates_rows_from_git_tags(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-003: BaselineRegisterGenerator produces rows from git tag output")
+    report = EvidenceReport(
+        subject="DHF-003: BaselineRegisterGenerator produces rows from git tag output"
+    )
 
     with patch("subprocess.run") as mock_run:
         # First call: git tag -l
@@ -352,14 +381,16 @@ def test_baseline_register_generates_rows_from_git_tags(tmp_path, evidence_outpu
     assert "abc1234" in rows
     assert "v0.2.0" in rows
 
-    report.info(f"generate_rows() produced rows for v0.1.0 and v0.2.0 with SHAs", "DHF-003")
+    report.info("generate_rows() produced rows for v0.1.0 and v0.2.0 with SHAs", "DHF-003")
     report.auto_save("dhf003_baseline_register_rows", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-003")
 def test_baseline_register_empty_when_no_tags(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-003: BaselineRegisterGenerator returns empty string when no git tags exist")
+    report = EvidenceReport(
+        subject="DHF-003: BaselineRegisterGenerator returns empty string when no git tags exist"
+    )
 
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = _mock_proc("")
@@ -392,7 +423,9 @@ GIT_LOG_OUTPUT = textwrap.dedent("""
 
 @pytest.mark.requirement("DHF-003")
 def test_change_log_generates_rows_from_git_log(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-003: ChangeLogGenerator produces rows from git log and pyproject.toml version")
+    report = EvidenceReport(
+        subject="DHF-003: ChangeLogGenerator produces rows from git log and pyproject.toml version"
+    )
 
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_text(PYPROJECT_TOML)
@@ -404,7 +437,7 @@ def test_change_log_generates_rows_from_git_log(tmp_path, evidence_output_dir):
 
     assert "0.3.1" in rows or "calcium score" in rows
 
-    report.info(f"generate_rows() produced change log from git log output", "DHF-003")
+    report.info("generate_rows() produced change log from git log output", "DHF-003")
     report.auto_save("dhf003_change_log_rows", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
@@ -412,6 +445,7 @@ def test_change_log_generates_rows_from_git_log(tmp_path, evidence_output_dir):
 # ---------------------------------------------------------------------------
 # Common: update_document idempotency (shared contract for all generators)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.requirement("DHF-006")
 def test_soup_table_update_document_is_idempotent(tmp_path, evidence_output_dir):
@@ -453,7 +487,9 @@ HAZARD_YAML = textwrap.dedent("""\
 
 @pytest.mark.requirement("DHF-014")
 def test_hazard_analysis_scaffold_rows(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-014: HazardAnalysisGenerator produces scaffold rows with FILL placeholders")
+    report = EvidenceReport(
+        subject="DHF-014: HazardAnalysisGenerator produces scaffold rows with FILL placeholders"
+    )
 
     hazard_file = tmp_path / "hazard_analysis.yaml"
     hazard_file.write_text(HAZARD_YAML)
@@ -465,13 +501,15 @@ def test_hazard_analysis_scaffold_rows(tmp_path, evidence_output_dir):
     assert "HAZ-002" in rows
     assert "RSK-001" in rows
     assert "RSK-002" in rows
-    assert "<!-- FILL -->" in rows, "cause/effect/severity/probability must be left as FILL placeholders"
+    assert "<!-- FILL -->" in rows, (
+        "cause/effect/severity/probability must be left as FILL placeholders"
+    )
     assert "Test hazard A" in rows
     assert "Test hazard B" in rows
 
     report.info(
-        f"generate_rows() produced 2 scaffold rows; HAZ-IDs, hazard titles, and mitigation_refs "
-        f"are populated; narrative columns contain <!-- FILL -->",
+        "generate_rows() produced 2 scaffold rows; HAZ-IDs, hazard titles, and mitigation_refs "
+        "are populated; narrative columns contain <!-- FILL -->",
         "DHF-014",
     )
     report.auto_save("dhf014_hazard_analysis_scaffold_rows", evidence_output_dir)
@@ -480,7 +518,9 @@ def test_hazard_analysis_scaffold_rows(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-014")
 def test_hazard_analysis_update_document_replaces_sentinel(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-014: HazardAnalysisGenerator.update_document() replaces sentinel section")
+    report = EvidenceReport(
+        subject="DHF-014: HazardAnalysisGenerator.update_document() replaces sentinel section"
+    )
 
     hazard_file = tmp_path / "hazard_analysis.yaml"
     hazard_file.write_text(HAZARD_YAML)
@@ -493,14 +533,18 @@ def test_hazard_analysis_update_document_replaces_sentinel(tmp_path, evidence_ou
     assert "HAZ-001" in content
     assert "stale | rows" not in content
 
-    report.info("update_document replaced sentinel section with current hazard scaffold rows", "DHF-014")
+    report.info(
+        "update_document replaced sentinel section with current hazard scaffold rows", "DHF-014"
+    )
     report.auto_save("dhf014_hazard_analysis_update_document", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-006")
 def test_hazard_analysis_update_document_is_idempotent(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-006: HazardAnalysisGenerator.update_document() is idempotent")
+    report = EvidenceReport(
+        subject="DHF-006: HazardAnalysisGenerator.update_document() is idempotent"
+    )
 
     hazard_file = tmp_path / "hazard_analysis.yaml"
     hazard_file.write_text(HAZARD_YAML)
@@ -516,7 +560,10 @@ def test_hazard_analysis_update_document_is_idempotent(tmp_path, evidence_output
 
     assert first == second
 
-    report.info("Two update_document() calls with same hazard_analysis.yaml produce identical file", "DHF-006")
+    report.info(
+        "Two update_document() calls with same hazard_analysis.yaml produce identical file",
+        "DHF-006",
+    )
     report.auto_save("dhf006_hazard_analysis_idempotent", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
@@ -569,7 +616,9 @@ ANOMALY_LOG_ALL_OPTIONAL_ABSENT = textwrap.dedent("""\
 
 @pytest.mark.requirement("DHF-016")
 def test_anomaly_log_generates_two_table_rows(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-016: AnomalyLogGenerator produces one row per anomaly entry")
+    report = EvidenceReport(
+        subject="DHF-016: AnomalyLogGenerator produces one row per anomaly entry"
+    )
 
     yaml_file = tmp_path / "anomaly_log.yaml"
     yaml_file.write_text(ANOMALY_LOG_TWO_ENTRIES)
@@ -588,7 +637,9 @@ def test_anomaly_log_generates_two_table_rows(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-016")
 def test_anomaly_log_empty_produces_no_data_rows(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-016: AnomalyLogGenerator produces no data rows for empty anomalies list")
+    report = EvidenceReport(
+        subject="DHF-016: AnomalyLogGenerator produces no data rows for empty anomalies list"
+    )
 
     yaml_file = tmp_path / "anomaly_log.yaml"
     yaml_file.write_text(ANOMALY_LOG_EMPTY_LIST)
@@ -613,7 +664,9 @@ def test_anomaly_log_open_entry_in_unresolved_section(tmp_path, evidence_output_
     gen = AnomalyLogGenerator(yaml_file)
     unresolved = gen.generate_unresolved_rows()
 
-    assert "ANO-001" in unresolved, f"Open ANO-001 must appear in unresolved rows; got:\n{unresolved}"
+    assert "ANO-001" in unresolved, (
+        f"Open ANO-001 must appear in unresolved rows; got:\n{unresolved}"
+    )
 
     report.info("open ANO-001 → appears in generate_unresolved_rows()", "DHF-016")
     report.auto_save("dhf016_open_anomaly_in_unresolved", evidence_output_dir)
@@ -622,7 +675,9 @@ def test_anomaly_log_open_entry_in_unresolved_section(tmp_path, evidence_output_
 
 @pytest.mark.requirement("DHF-016")
 def test_anomaly_log_closed_entry_not_in_unresolved_section(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-016: closed anomaly does not appear in generate_unresolved_rows()")
+    report = EvidenceReport(
+        subject="DHF-016: closed anomaly does not appear in generate_unresolved_rows()"
+    )
 
     yaml_file = tmp_path / "anomaly_log.yaml"
     yaml_file.write_text(ANOMALY_LOG_TWO_ENTRIES)
@@ -630,7 +685,9 @@ def test_anomaly_log_closed_entry_not_in_unresolved_section(tmp_path, evidence_o
     gen = AnomalyLogGenerator(yaml_file)
     unresolved = gen.generate_unresolved_rows()
 
-    assert "ANO-002" not in unresolved, f"Closed ANO-002 must not appear in unresolved rows; got:\n{unresolved}"
+    assert "ANO-002" not in unresolved, (
+        f"Closed ANO-002 must not appear in unresolved rows; got:\n{unresolved}"
+    )
 
     report.info("closed ANO-002 → absent from generate_unresolved_rows()", "DHF-016")
     report.auto_save("dhf016_closed_anomaly_not_in_unresolved", evidence_output_dir)
@@ -639,7 +696,9 @@ def test_anomaly_log_closed_entry_not_in_unresolved_section(tmp_path, evidence_o
 
 @pytest.mark.requirement("DHF-016")
 def test_anomaly_log_optional_fields_absent_render_as_dash(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-016: missing optional fields (safety_impact, linked_pr, closed) render as —")
+    report = EvidenceReport(
+        subject="DHF-016: missing optional fields (safety_impact, linked_pr, closed) render as —"
+    )
 
     yaml_file = tmp_path / "anomaly_log.yaml"
     yaml_file.write_text(ANOMALY_LOG_ALL_OPTIONAL_ABSENT)
@@ -663,9 +722,7 @@ def test_anomaly_log_update_document_is_idempotent(tmp_path, evidence_output_dir
     yaml_file.write_text(ANOMALY_LOG_TWO_ENTRIES)
     doc = tmp_path / "anomaly_log.md"
     doc.write_text(
-        _doc_with_sentinels("ANOMALY_TABLE")
-        + "\n"
-        + _doc_with_sentinels("UNRESOLVED_ANOMALIES")
+        _doc_with_sentinels("ANOMALY_TABLE") + "\n" + _doc_with_sentinels("UNRESOLVED_ANOMALIES")
     )
 
     gen = AnomalyLogGenerator(yaml_file)
@@ -677,14 +734,18 @@ def test_anomaly_log_update_document_is_idempotent(tmp_path, evidence_output_dir
 
     assert first == second
 
-    report.info("Two update_document() calls with same anomaly_log.yaml produce identical file", "DHF-016")
+    report.info(
+        "Two update_document() calls with same anomaly_log.yaml produce identical file", "DHF-016"
+    )
     report.auto_save("dhf016_update_document_idempotent", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-016")
 def test_anomaly_log_update_document_replaces_stale_rows(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-016: update_document replaces stale sentinel content with current YAML data")
+    report = EvidenceReport(
+        subject="DHF-016: update_document replaces stale sentinel content with current YAML data"
+    )
 
     yaml_file = tmp_path / "anomaly_log.yaml"
     yaml_file.write_text(ANOMALY_LOG_TWO_ENTRIES)
@@ -697,7 +758,9 @@ def test_anomaly_log_update_document_replaces_stale_rows(tmp_path, evidence_outp
     assert "ANO-001" in content
     assert "stale | data | here" not in content
 
-    report.info("update_document replaced stale sentinel section with current anomaly rows", "DHF-016")
+    report.info(
+        "update_document replaced stale sentinel section with current anomaly rows", "DHF-016"
+    )
     report.auto_save("dhf016_update_document_replaces_stale", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
@@ -706,8 +769,10 @@ def test_anomaly_log_update_document_replaces_stale_rows(tmp_path, evidence_outp
 # Internal helper
 # ---------------------------------------------------------------------------
 
+
 def _mock_proc(stdout: str):
     from unittest.mock import MagicMock
+
     m = MagicMock()
     m.stdout = stdout
     m.returncode = 0

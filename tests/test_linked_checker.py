@@ -1,13 +1,13 @@
 """Tests for check_linked_requirements() — VER-011.
 These tests fail until linked_checker.py is implemented.
 """
+
 import textwrap
 
 import pytest
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.quality.linked_checker import check_linked_requirements
-
 
 REQUIREMENTS_SAMD_C = textwrap.dedent("""\
     metadata:
@@ -71,7 +71,9 @@ def test_no_linked_rows_passes(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("VER-011")
 def test_linked_rows_samd_c_reports_ids(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_linked_requirements returns LINKED requirement IDs for samd_class C")
+    report = EvidenceReport(
+        subject="check_linked_requirements returns LINKED requirement IDs for samd_class C"
+    )
     _write_setup(tmp_path, REQUIREMENTS_SAMD_C, RTM_WITH_LINKED)
 
     result = check_linked_requirements(tmp_path)
@@ -88,7 +90,9 @@ def test_linked_rows_samd_c_reports_ids(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("VER-011")
 def test_linked_rows_utility_is_skipped(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_linked_requirements skips check for samd_class utility even with LINKED rows")
+    report = EvidenceReport(
+        subject="check_linked_requirements skips check for samd_class utility even with LINKED rows"
+    )
     _write_setup(tmp_path, REQUIREMENTS_UTILITY, RTM_WITH_LINKED)
 
     result = check_linked_requirements(tmp_path)
@@ -105,7 +109,9 @@ def test_linked_rows_utility_is_skipped(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("VER-011")
 def test_untested_rows_not_counted_as_linked(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_linked_requirements does not count UNTESTED rows as LINKED")
+    report = EvidenceReport(
+        subject="check_linked_requirements does not count UNTESTED rows as LINKED"
+    )
     _write_setup(tmp_path, REQUIREMENTS_SAMD_C, RTM_ALL_UNTESTED)
 
     result = check_linked_requirements(tmp_path)
@@ -122,7 +128,9 @@ def test_untested_rows_not_counted_as_linked(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("VER-011")
 def test_no_rtm_returns_empty(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_linked_requirements returns empty list when traceability_matrix.md absent")
+    report = EvidenceReport(
+        subject="check_linked_requirements returns empty list when traceability_matrix.md absent"
+    )
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "requirements.yaml").write_text(REQUIREMENTS_SAMD_C)
 

@@ -21,8 +21,7 @@ class SOUPTableGenerator:
         entries = data.get("soup", [])
         if not entries:
             return ""
-        lines = ["| Name | Version | Purpose | License |",
-                 "|------|---------|---------|---------|"]
+        lines = ["| Name | Version | Purpose | License |", "|------|---------|---------|---------|"]
         for e in entries:
             lines.append(
                 f"| {e.get('name', '')} | {e.get('version', '')} "

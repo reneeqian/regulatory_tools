@@ -5,9 +5,7 @@ import yaml
 
 REQ_ID_REGEX = r"(?:[A-Z]+-)?[A-Z]+-\d{3,}"
 REQ_ID_PATTERN = re.compile(rf"^{REQ_ID_REGEX}$")
-REQ_MARK_PATTERN = re.compile(
-    rf'(?:pytest\.mark\.)?requirement\(["\']({REQ_ID_REGEX})["\']\)'
-)
+REQ_MARK_PATTERN = re.compile(rf'(?:pytest\.mark\.)?requirement\(["\']({REQ_ID_REGEX})["\']\)')
 
 
 def extract_requirement_marks(test_dir: Path) -> set[str]:
@@ -31,7 +29,6 @@ def load_requirements(path: Path) -> set[str]:
     ids: set[str] = set()
 
     for req in data["requirements"]:
-
         req_id = req.get("id")
 
         if req_id is None:
@@ -48,9 +45,7 @@ def load_requirements(path: Path) -> set[str]:
     return ids
 
 
-def validate_traceability(
-    requirements_yaml: Path, test_dir: Path
-) -> tuple[set[str], set[str]]:
+def validate_traceability(requirements_yaml: Path, test_dir: Path) -> tuple[set[str], set[str]]:
 
     declared = load_requirements(requirements_yaml)
     tested = extract_requirement_marks(test_dir)
@@ -68,7 +63,6 @@ def find_unmarked_tests(test_dir: Path) -> list[str]:
     unmarked: list[str] = []
 
     for test_file in test_dir.rglob("test_*.py"):
-
         content = test_file.read_text()
 
         has_test_function = test_function_pattern.search(content)

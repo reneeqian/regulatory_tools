@@ -2,14 +2,15 @@
 Tests for regulatory_tools.dhf.context — DHFContext (DHF-002, DHF-009).
 These tests must fail before DHFContext exists.
 """
+
 import textwrap
 from pathlib import Path
 
 import pytest
 
-from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.dhf.context import DHFContext
 from regulatory_tools.dhf.validator import DHFValidationError
+from regulatory_tools.evidence.evidence_report import EvidenceReport
 
 
 def _write_context(tmp_path: Path, content: str) -> Path:
@@ -37,7 +38,9 @@ FULL_CONTEXT = """
 
 @pytest.mark.requirement("DHF-002")
 def test_context_loads_required_fields(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-002: DHFContext loads all required fields from dhf_context.yaml")
+    report = EvidenceReport(
+        subject="DHF-002: DHFContext loads all required fields from dhf_context.yaml"
+    )
 
     path = _write_context(tmp_path, FULL_CONTEXT)
     ctx = DHFContext.from_yaml(path)
@@ -49,7 +52,10 @@ def test_context_loads_required_fields(tmp_path, evidence_output_dir):
     assert ctx.templates_root == Path("/tmp/SaMD-DHF-Templates")
     assert ctx.git_repo == Path("/tmp/Coronary_prj")
 
-    report.info(f"project_name={ctx.project_name!r}, responsible_person={ctx.responsible_person!r}", "DHF-002")
+    report.info(
+        f"project_name={ctx.project_name!r}, responsible_person={ctx.responsible_person!r}",
+        "DHF-002",
+    )
     report.auto_save("dhf002_context_loads_required_fields", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
@@ -72,7 +78,9 @@ def test_context_data_sources_are_paths(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-009")
 def test_context_missing_required_field_raises(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-009: DHFContext.from_yaml raises DHFValidationError when a required field is missing")
+    report = EvidenceReport(
+        subject="DHF-009: DHFContext.from_yaml raises DHFValidationError when a required field is missing"
+    )
 
     missing_project_name = """
         responsible_person: "Renee Qian"
@@ -100,7 +108,9 @@ def test_context_missing_required_field_raises(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-009")
 def test_context_invalid_yaml_raises(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-009: DHFContext.from_yaml raises DHFValidationError on malformed YAML")
+    report = EvidenceReport(
+        subject="DHF-009: DHFContext.from_yaml raises DHFValidationError on malformed YAML"
+    )
 
     path = tmp_path / "dhf_context.yaml"
     path.write_text("project_name: [\nbad yaml")
@@ -115,7 +125,9 @@ def test_context_invalid_yaml_raises(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-002")
 def test_context_as_placeholder_dict_contains_all_simple_fields(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-002: DHFContext.as_placeholder_dict() returns dict with PROJECT_NAME etc.")
+    report = EvidenceReport(
+        subject="DHF-002: DHFContext.as_placeholder_dict() returns dict with PROJECT_NAME etc."
+    )
 
     path = _write_context(tmp_path, FULL_CONTEXT)
     ctx = DHFContext.from_yaml(path)
@@ -126,6 +138,9 @@ def test_context_as_placeholder_dict_contains_all_simple_fields(tmp_path, eviden
     assert d["AUTHOR"] == "Renee Qian"
     assert "CODE_REPO" in d
 
-    report.info(f"as_placeholder_dict keys include PROJECT_NAME, RESPONSIBLE_PERSON, AUTHOR, CODE_REPO", "DHF-002")
+    report.info(
+        "as_placeholder_dict keys include PROJECT_NAME, RESPONSIBLE_PERSON, AUTHOR, CODE_REPO",
+        "DHF-002",
+    )
     report.auto_save("dhf002_context_placeholder_dict", evidence_output_dir)
     assert not report.has_errors, report.summary()

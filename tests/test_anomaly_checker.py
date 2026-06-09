@@ -1,13 +1,13 @@
 """Tests for check_anomaly_log() — VER-010.
 These tests fail until anomaly_checker.py is implemented.
 """
+
 import textwrap
 
 import pytest
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.quality.anomaly_checker import check_anomaly_log
-
 
 REQUIREMENTS_SAMD_C = textwrap.dedent("""\
     metadata:
@@ -52,7 +52,9 @@ def _write_requirements(path, content):
 
 @pytest.mark.requirement("VER-010")
 def test_anomaly_log_present_samd_c_passes(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_anomaly_log passes when anomaly_log.yaml present for samd_class C")
+    report = EvidenceReport(
+        subject="check_anomaly_log passes when anomaly_log.yaml present for samd_class C"
+    )
     _write_requirements(tmp_path, REQUIREMENTS_SAMD_C)
     (tmp_path / "docs" / "anomaly_log.yaml").write_text(ANOMALY_LOG_EMPTY)
 
@@ -69,7 +71,9 @@ def test_anomaly_log_present_samd_c_passes(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("VER-010")
 def test_anomaly_log_absent_samd_c_reports_violation(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_anomaly_log reports violation when anomaly_log.yaml absent for samd_class C")
+    report = EvidenceReport(
+        subject="check_anomaly_log reports violation when anomaly_log.yaml absent for samd_class C"
+    )
     _write_requirements(tmp_path, REQUIREMENTS_SAMD_C)
 
     result = check_anomaly_log(tmp_path)
@@ -81,14 +85,18 @@ def test_anomaly_log_absent_samd_c_reports_violation(tmp_path, evidence_output_d
         f"Violation must mention anomaly_log; got: {result['violations']}"
     )
 
-    report.info(f"anomaly_log.yaml absent, samd_class C → violations: {result['violations']}", "VER-010")
+    report.info(
+        f"anomaly_log.yaml absent, samd_class C → violations: {result['violations']}", "VER-010"
+    )
     report.auto_save("ver010_anomaly_log_absent_samd_c", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("VER-010")
 def test_anomaly_log_absent_samd_b_reports_violation(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_anomaly_log reports violation when anomaly_log.yaml absent for samd_class B")
+    report = EvidenceReport(
+        subject="check_anomaly_log reports violation when anomaly_log.yaml absent for samd_class B"
+    )
     _write_requirements(tmp_path, REQUIREMENTS_SAMD_B)
 
     result = check_anomaly_log(tmp_path)
@@ -97,14 +105,18 @@ def test_anomaly_log_absent_samd_b_reports_violation(tmp_path, evidence_output_d
     assert result["found"] is False
     assert len(result["violations"]) >= 1
 
-    report.info(f"anomaly_log.yaml absent, samd_class B → violations: {result['violations']}", "VER-010")
+    report.info(
+        f"anomaly_log.yaml absent, samd_class B → violations: {result['violations']}", "VER-010"
+    )
     report.auto_save("ver010_anomaly_log_absent_samd_b", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("VER-010")
 def test_anomaly_log_absent_samd_tool_reports_violation(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="check_anomaly_log reports violation when anomaly_log.yaml absent for samd_class tool")
+    report = EvidenceReport(
+        subject="check_anomaly_log reports violation when anomaly_log.yaml absent for samd_class tool"
+    )
     _write_requirements(tmp_path, REQUIREMENTS_SAMD_TOOL)
 
     result = check_anomaly_log(tmp_path)
@@ -113,7 +125,9 @@ def test_anomaly_log_absent_samd_tool_reports_violation(tmp_path, evidence_outpu
     assert result["found"] is False
     assert len(result["violations"]) >= 1
 
-    report.info(f"anomaly_log.yaml absent, samd_class tool → violations: {result['violations']}", "VER-010")
+    report.info(
+        f"anomaly_log.yaml absent, samd_class tool → violations: {result['violations']}", "VER-010"
+    )
     report.auto_save("ver010_anomaly_log_absent_samd_tool", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
