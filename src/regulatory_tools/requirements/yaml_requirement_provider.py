@@ -4,7 +4,6 @@ import yaml
 
 
 class YamlRequirementProvider:
-
     def __init__(self, yaml_path):
         self.tag_to_ids = self._load(yaml_path)
 

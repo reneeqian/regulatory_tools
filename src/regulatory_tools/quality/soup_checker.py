@@ -1,4 +1,5 @@
 """SOUP (Software of Unknown Provenance) inventory checker."""
+
 from __future__ import annotations
 
 import re
@@ -50,10 +51,7 @@ def check_soup_inventory(project_root: Path) -> dict:
 
     # Parse listed names from soup.yaml
     soup_text = soup_path.read_text().lower()
-    unlisted = [
-        name for name in dep_names
-        if name not in soup_text
-    ]
+    unlisted = [name for name in dep_names if name not in soup_text]
     result["unlisted_deps"] = unlisted
     return result
 
@@ -85,13 +83,9 @@ def check_soup_fields(project_root: Path) -> dict:
     for entry in data.get("soup", []):
         name = entry.get("name", "<unknown>")
         if "purpose" in entry:
-            result["violations"].append(
-                f"{name}: uses 'purpose' field — rename to 'intended_use'"
-            )
+            result["violations"].append(f"{name}: uses 'purpose' field — rename to 'intended_use'")
         for field in _REQUIRED_FIELDS:
             if field not in entry:
-                result["violations"].append(
-                    f"{name}: missing required field '{field}'"
-                )
+                result["violations"].append(f"{name}: missing required field '{field}'")
 
     return result

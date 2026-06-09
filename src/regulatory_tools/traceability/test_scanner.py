@@ -2,7 +2,9 @@ import ast
 from pathlib import Path
 
 
-def collect_requirement_markers(test_root: Path, project_root: Path = None):
+def collect_requirement_markers(
+    test_root: Path, project_root: Path | None = None
+) -> dict[str, list[str]]:
     """
     Scan pytest files and collect requirement markers.
 
@@ -14,7 +16,7 @@ def collect_requirement_markers(test_root: Path, project_root: Path = None):
     if project_root is None:
         project_root = test_root
 
-    requirement_map = {}
+    requirement_map: dict[str, list[str]] = {}
 
     for test_file in test_root.rglob("test_*.py"):
         module = ast.parse(test_file.read_text())
@@ -31,9 +33,12 @@ def collect_requirement_markers(test_root: Path, project_root: Path = None):
                         isinstance(decorator.func, ast.Attribute)
                         and decorator.func.attr == "requirement"
                     ):
-
                         for arg in decorator.args:
-                            req_id = arg.value
+                            if not isinstance(arg, ast.Constant) or not isinstance(
+                                arg.value, str
+                            ):
+                                continue
+                            req_id: str = arg.value
                             node_id = f"{test_file.relative_to(project_root)}::{test_name}"
                             requirement_map.setdefault(req_id, []).append(node_id)
 

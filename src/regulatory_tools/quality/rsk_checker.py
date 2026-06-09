@@ -1,9 +1,9 @@
 """Risk-requirement (RSK-) presence checker."""
+
 from __future__ import annotations
 
 import re
 from pathlib import Path
-
 
 _REQUIREMENT_FILE_NAMES = [
     "user_needs.yaml",

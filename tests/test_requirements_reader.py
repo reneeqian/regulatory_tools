@@ -3,6 +3,7 @@ Tests for regulatory_tools.dhf.requirements_reader (DHF-001, DHF-007).
 
 These tests must fail before RequirementsReader exists (Gate 2 — TDD).
 """
+
 import textwrap
 from pathlib import Path
 
@@ -10,10 +11,10 @@ import pytest
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _write_yaml(tmp_path: Path, content: str) -> Path:
     p = tmp_path / "requirements.yaml"
@@ -52,14 +53,16 @@ MINIMAL_YAML = """
 
 from regulatory_tools.dhf.requirements_reader import Requirement, RequirementsReader
 
-
 # ---------------------------------------------------------------------------
 # Requirement dataclass
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.requirement("DHF-001")
 def test_requirement_dataclass_has_expected_fields(evidence_output_dir):
-    report = EvidenceReport(subject="DHF-001: Requirement dataclass exposes id, type, title, description, tags, derived_from")
+    report = EvidenceReport(
+        subject="DHF-001: Requirement dataclass exposes id, type, title, description, tags, derived_from"
+    )
 
     req = Requirement(
         id="SYS-001",
@@ -84,6 +87,7 @@ def test_requirement_dataclass_has_expected_fields(evidence_output_dir):
 # Load — type defaults
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.requirement("DHF-001")
 def test_missing_type_defaults_to_system_requirement(tmp_path, evidence_output_dir):
     report = EvidenceReport(subject="DHF-001: Entry without `type` defaults to system_requirement")
@@ -92,7 +96,9 @@ def test_missing_type_defaults_to_system_requirement(tmp_path, evidence_output_d
     reqs = RequirementsReader.load(path)
 
     sys_req = next(r for r in reqs if r.id == "SYS-001")
-    assert sys_req.type == "system_requirement", f"Expected system_requirement, got {sys_req.type!r}"
+    assert sys_req.type == "system_requirement", (
+        f"Expected system_requirement, got {sys_req.type!r}"
+    )
 
     report.info(f"SYS-001 without explicit type → type={sys_req.type!r}", "DHF-001")
     report.auto_save("dhf001_missing_type_defaults", evidence_output_dir)
@@ -101,7 +107,9 @@ def test_missing_type_defaults_to_system_requirement(tmp_path, evidence_output_d
 
 @pytest.mark.requirement("DHF-001")
 def test_explicit_type_values_are_preserved(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-001: Explicit type values user_need, design_requirement, risk_control preserved")
+    report = EvidenceReport(
+        subject="DHF-001: Explicit type values user_need, design_requirement, risk_control preserved"
+    )
 
     path = _write_yaml(tmp_path, MINIMAL_YAML)
     reqs = RequirementsReader.load(path)
@@ -151,9 +159,12 @@ def test_derived_from_list_is_parsed(tmp_path, evidence_output_dir):
 # by_type()
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.requirement("DHF-001")
 def test_by_type_returns_only_matching_requirements(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-001: by_type() returns only requirements of the requested type")
+    report = EvidenceReport(
+        subject="DHF-001: by_type() returns only requirements of the requested type"
+    )
 
     path = _write_yaml(tmp_path, MINIMAL_YAML)
     reader = RequirementsReader(path)
@@ -178,7 +189,9 @@ def test_by_type_returns_only_matching_requirements(tmp_path, evidence_output_di
 
 @pytest.mark.requirement("DHF-001")
 def test_by_type_unknown_type_returns_empty(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-001: by_type() with unknown type string returns empty list")
+    report = EvidenceReport(
+        subject="DHF-001: by_type() with unknown type string returns empty list"
+    )
 
     path = _write_yaml(tmp_path, MINIMAL_YAML)
     reader = RequirementsReader(path)
@@ -195,9 +208,12 @@ def test_by_type_unknown_type_returns_empty(tmp_path, evidence_output_dir):
 # derived_from_id() — walk the graph upward
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.requirement("DHF-007")
 def test_derived_from_id_returns_child_requirements(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-007: derived_from_id() returns requirements that list the given ID in derived_from")
+    report = EvidenceReport(
+        subject="DHF-007: derived_from_id() returns requirements that list the given ID in derived_from"
+    )
 
     path = _write_yaml(tmp_path, MINIMAL_YAML)
     reader = RequirementsReader(path)
@@ -216,7 +232,9 @@ def test_derived_from_id_returns_child_requirements(tmp_path, evidence_output_di
 
 @pytest.mark.requirement("DHF-007")
 def test_derived_from_id_with_no_children_returns_empty(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-007: derived_from_id() returns [] when no requirements derive from the given ID")
+    report = EvidenceReport(
+        subject="DHF-007: derived_from_id() returns [] when no requirements derive from the given ID"
+    )
 
     path = _write_yaml(tmp_path, MINIMAL_YAML)
     reader = RequirementsReader(path)
@@ -233,9 +251,12 @@ def test_derived_from_id_with_no_children_returns_empty(tmp_path, evidence_outpu
 # Backward compatibility — existing requirements.yaml files must still parse
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.requirement("DHF-001")
 def test_existing_requirements_yaml_parses_without_error(evidence_output_dir):
-    report = EvidenceReport(subject="DHF-001: RequirementsReader.load() succeeds on regulatory_tools/docs/requirements.yaml")
+    report = EvidenceReport(
+        subject="DHF-001: RequirementsReader.load() succeeds on regulatory_tools/docs/requirements.yaml"
+    )
 
     reqs_path = Path(__file__).resolve().parents[1] / "docs" / "requirements.yaml"
     reqs = RequirementsReader.load(reqs_path)
@@ -243,8 +264,12 @@ def test_existing_requirements_yaml_parses_without_error(evidence_output_dir):
     assert len(reqs) > 0
     # All existing entries have no explicit type — they should all default to system_requirement
     for r in reqs:
-        assert r.type in {"system_requirement", "user_need", "design_requirement", "risk_control"}, \
-            f"{r.id}: unexpected type {r.type!r}"
+        assert r.type in {
+            "system_requirement",
+            "user_need",
+            "design_requirement",
+            "risk_control",
+        }, f"{r.id}: unexpected type {r.type!r}"
 
     report.info(
         f"Loaded {len(reqs)} requirements from regulatory_tools/docs/requirements.yaml — all types valid",
@@ -297,7 +322,9 @@ def _write_split_files(tmp_path: Path) -> tuple[Path, Path]:
 
 @pytest.mark.requirement("DHF-012")
 def test_multi_file_load_merges_requirements(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-012: RequirementsReader([paths]) merges requirements from multiple files into one namespace")
+    report = EvidenceReport(
+        subject="DHF-012: RequirementsReader([paths]) merges requirements from multiple files into one namespace"
+    )
 
     srs, design = _write_split_files(tmp_path)
     reader = RequirementsReader([srs, design])
@@ -307,23 +334,29 @@ def test_multi_file_load_merges_requirements(tmp_path, evidence_output_dir):
     assert "SYS-099" in all_ids
     assert len(reader.all()) == 2
 
-    report.info(f"Merged {len(reader.all())} requirements from 2 files: {sorted(all_ids)}", "DHF-012")
+    report.info(
+        f"Merged {len(reader.all())} requirements from 2 files: {sorted(all_ids)}", "DHF-012"
+    )
     report.auto_save("dhf012_multi_file_merge", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-012")
 def test_source_file_field_is_set_to_path_stem(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-012: Each Requirement.source_file equals the filename stem of its origin file")
+    report = EvidenceReport(
+        subject="DHF-012: Each Requirement.source_file equals the filename stem of its origin file"
+    )
 
     srs, design = _write_split_files(tmp_path)
     reader = RequirementsReader([srs, design])
     by_id = {r.id: r for r in reader.all()}
 
-    assert by_id["SYS-001"].source_file == "requirements", \
+    assert by_id["SYS-001"].source_file == "requirements", (
         f"Expected 'requirements', got {by_id['SYS-001'].source_file!r}"
-    assert by_id["SYS-099"].source_file == "design", \
+    )
+    assert by_id["SYS-099"].source_file == "design", (
         f"Expected 'design', got {by_id['SYS-099'].source_file!r}"
+    )
 
     report.info(
         f"SYS-001.source_file={by_id['SYS-001'].source_file!r}, "
@@ -336,7 +369,9 @@ def test_source_file_field_is_set_to_path_stem(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-012")
 def test_single_path_wrapped_in_list_still_works(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-012: RequirementsReader([single_path]) works identically to legacy single-path usage")
+    report = EvidenceReport(
+        subject="DHF-012: RequirementsReader([single_path]) works identically to legacy single-path usage"
+    )
 
     srs, _ = _write_split_files(tmp_path)
     reader = RequirementsReader([srs])
@@ -351,12 +386,15 @@ def test_single_path_wrapped_in_list_still_works(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-012")
 def test_duplicate_id_across_files_raises(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-012: RequirementsReader raises ValueError when duplicate IDs appear across files")
+    report = EvidenceReport(
+        subject="DHF-012: RequirementsReader raises ValueError when duplicate IDs appear across files"
+    )
 
     srs = tmp_path / "requirements.yaml"
     srs.write_text(SRS_YAML)
     dup = tmp_path / "other.yaml"
-    dup.write_text(textwrap.dedent("""\
+    dup.write_text(
+        textwrap.dedent("""\
         metadata:
           project: test
           file_role: other
@@ -366,7 +404,8 @@ def test_duplicate_id_across_files_raises(tmp_path, evidence_output_dir):
           - id: SYS-001
             title: Duplicate
             description: Duplicate ID from another file.
-    """))
+    """)
+    )
 
     with pytest.raises(ValueError, match="SYS-001"):
         RequirementsReader([srs, dup])

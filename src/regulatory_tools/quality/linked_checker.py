@@ -1,4 +1,5 @@
 """LINKED requirements gate checker — VER-011."""
+
 from __future__ import annotations
 
 import re

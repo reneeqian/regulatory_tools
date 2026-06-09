@@ -26,7 +26,9 @@ class ChangeLogGenerator:
         version = _read_version(self._pyproject)
         log_out = subprocess.run(
             ["git", "log", "--oneline", "--no-merges"],
-            capture_output=True, text=True, cwd=self._repo,
+            capture_output=True,
+            text=True,
+            cwd=self._repo,
         ).stdout.strip()
 
         if not log_out:

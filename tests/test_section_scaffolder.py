@@ -2,13 +2,14 @@
 Tests for regulatory_tools.dhf.section_scaffolder — SectionScaffolder (DHF-005).
 These tests must fail before SectionScaffolder exists.
 """
+
 from pathlib import Path
 
 import pytest
 
-from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.dhf.placeholder_filler import PlaceholderFiller
 from regulatory_tools.dhf.section_scaffolder import SectionScaffolder
+from regulatory_tools.evidence.evidence_report import EvidenceReport
 
 
 def _make_templates(tmp_path: Path) -> Path:
@@ -27,7 +28,9 @@ def _make_templates(tmp_path: Path) -> Path:
 
 @pytest.mark.requirement("DHF-005")
 def test_scaffolder_copies_missing_sections(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-005: SectionScaffolder copies missing template sections into dhf_root")
+    report = EvidenceReport(
+        subject="DHF-005: SectionScaffolder copies missing template sections into dhf_root"
+    )
 
     templates = _make_templates(tmp_path)
     dhf_root = tmp_path / "dhf"
@@ -41,14 +44,18 @@ def test_scaffolder_copies_missing_sections(tmp_path, evidence_output_dir):
     assert (dhf_root / "10_software_development_plan" / "sdp.md").exists()
     assert (dhf_root / "11_anomaly_log" / "anomaly_log.md").exists()
 
-    report.info(f"scaffold_missing() created {len(created)} files: {[str(p) for p in created]}", "DHF-005")
+    report.info(
+        f"scaffold_missing() created {len(created)} files: {[str(p) for p in created]}", "DHF-005"
+    )
     report.auto_save("dhf005_scaffolder_copies_missing", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-005")
 def test_scaffolder_fills_placeholders_in_copied_files(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-005: SectionScaffolder runs PlaceholderFiller on copied files")
+    report = EvidenceReport(
+        subject="DHF-005: SectionScaffolder runs PlaceholderFiller on copied files"
+    )
 
     templates = _make_templates(tmp_path)
     dhf_root = tmp_path / "dhf"
@@ -68,7 +75,9 @@ def test_scaffolder_fills_placeholders_in_copied_files(tmp_path, evidence_output
 
 @pytest.mark.requirement("DHF-005")
 def test_scaffolder_does_not_overwrite_existing_sections(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-005: SectionScaffolder leaves existing DHF sections untouched")
+    report = EvidenceReport(
+        subject="DHF-005: SectionScaffolder leaves existing DHF sections untouched"
+    )
 
     templates = _make_templates(tmp_path)
     dhf_root = tmp_path / "dhf"
@@ -91,7 +100,9 @@ def test_scaffolder_does_not_overwrite_existing_sections(tmp_path, evidence_outp
 
 @pytest.mark.requirement("DHF-005")
 def test_scaffolder_returns_empty_when_all_sections_exist(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-005: SectionScaffolder returns [] when all template sections already exist in dhf_root")
+    report = EvidenceReport(
+        subject="DHF-005: SectionScaffolder returns [] when all template sections already exist in dhf_root"
+    )
 
     templates = _make_templates(tmp_path)
     dhf_root = tmp_path / "dhf"

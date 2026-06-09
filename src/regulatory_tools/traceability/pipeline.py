@@ -1,4 +1,3 @@
-
 from .coverage import compute_code_coverage, compute_requirement_coverage, save_uncovered_lines
 from .generator import apply_test_markers, build_trace_matrix, write_markdown
 from .test_scanner import collect_requirement_markers
@@ -23,8 +22,9 @@ def generate_traceability_matrix(project_root):
         "risk_controls.yaml",
     ]
     docs_dir = project_root / "docs"
-    requirement_paths = [docs_dir / name for name in _REQUIREMENT_FILE_NAMES
-                         if (docs_dir / name).exists()]
+    requirement_paths = [
+        docs_dir / name for name in _REQUIREMENT_FILE_NAMES if (docs_dir / name).exists()
+    ]
     if not requirement_paths:
         requirement_paths = [docs_dir / "requirements.yaml"]
 
@@ -46,6 +46,7 @@ def generate_traceability_matrix(project_root):
 
     try:
         from ..quality.forge_integration import forge_health_as_dict, get_forge_health
+
         forge_report = get_forge_health(project_root)
         if forge_report is not None:
             forge_summary = forge_health_as_dict(forge_report)
@@ -71,9 +72,7 @@ def generate_traceability_matrix(project_root):
             "total": total,
             "untested": untested,
         },
-        code_coverage_summary={
-            "coverage": code_coverage
-        },
+        code_coverage_summary={"coverage": code_coverage},
         forge_health=forge_summary,
     )
 

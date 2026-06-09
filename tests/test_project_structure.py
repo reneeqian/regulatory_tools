@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import pytest
 import yaml
-from pathlib import Path
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.quality.soup_checker import check_soup_inventory
@@ -57,10 +58,7 @@ def test_project_documentation_structure(
 
         if data:
             # ---- Metadata project title ----
-            project_name = (
-                data.get("metadata", {})
-                .get("project")
-            )
+            project_name = data.get("metadata", {}).get("project")
 
             if not project_name:
                 report.error(
@@ -112,10 +110,7 @@ def test_project_documentation_structure(
     else:
         content = readme_path.read_text(encoding="utf-8")
 
-        has_heading = any(
-            line.strip().startswith("#")
-            for line in content.splitlines()
-        )
+        has_heading = any(line.strip().startswith("#") for line in content.splitlines())
 
         if not has_heading:
             report.error(

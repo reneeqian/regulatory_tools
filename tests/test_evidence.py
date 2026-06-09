@@ -1,22 +1,24 @@
-from pathlib import Path
 import json
-import pytest
 import sys
+from pathlib import Path
+
+import pytest
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport, generate_evidence_summary
 from regulatory_tools.traceability import __main__ as traceability_main
-from regulatory_tools.traceability.generator import build_trace_matrix
 from regulatory_tools.traceability.coverage import (
     compute_code_coverage,
     compute_requirement_coverage,
     coverage_xml_path,
     save_uncovered_lines,
 )
+from regulatory_tools.traceability.generator import build_trace_matrix
 from regulatory_tools.traceability.validate_traceability import find_unmarked_tests
 
 # ----------------------------
 # Helpers
 # ----------------------------
+
 
 def create_dummy_requirements(path: Path):
     path.write_text(
@@ -46,11 +48,14 @@ def create_dummy_evidence(root: Path):
 # Tests
 # ----------------------------
 
+
 @pytest.mark.requirement("DOC-004")
 @pytest.mark.requirement("INF-001")
 @pytest.mark.requirement("INF-004")
 def test_evidence_summary(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="generate_evidence_summary aggregates evidence artifacts and reports total_tests count")
+    report = EvidenceReport(
+        subject="generate_evidence_summary aggregates evidence artifacts and reports total_tests count"
+    )
 
     run = tmp_path / "run"
     run.mkdir()
@@ -60,8 +65,8 @@ def test_evidence_summary(tmp_path, evidence_output_dir):
     result = generate_evidence_summary(run)
 
     report.info(f"total_tests={result['total_tests']}", "INF-001")
-    report.info(f"evidence_artifact_associated_with_requirement", "INF-004")
-    report.info(f"summary_generated_from_artifacts", "DOC-004")
+    report.info("evidence_artifact_associated_with_requirement", "INF-004")
+    report.info("summary_generated_from_artifacts", "DOC-004")
     report.auto_save("doc004_inf001_inf004_evidence_summary", evidence_output_dir)
     assert not report.has_errors, report.summary()
     assert result["total_tests"] == 1
@@ -69,7 +74,9 @@ def test_evidence_summary(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("INF-004")
 def test_invalid_evidence_schema(tmp_path: Path, evidence_output_dir):
-    report = EvidenceReport(subject="build_trace_matrix skips evidence files missing required 'test_id' field without crashing")
+    report = EvidenceReport(
+        subject="build_trace_matrix skips evidence files missing required 'test_id' field without crashing"
+    )
 
     req_yaml = tmp_path / "requirements.yaml"
     evidence_root = tmp_path / "evidence"
@@ -90,7 +97,9 @@ def test_invalid_evidence_schema(tmp_path: Path, evidence_output_dir):
 
 @pytest.mark.requirement("INF-001")
 def test_latest_evidence_run_used(tmp_path: Path, evidence_output_dir):
-    report = EvidenceReport(subject="build_trace_matrix uses the most recent evidence run when multiple runs exist")
+    report = EvidenceReport(
+        subject="build_trace_matrix uses the most recent evidence run when multiple runs exist"
+    )
 
     req_yaml = tmp_path / "requirements.yaml"
     evidence_root = tmp_path / "evidence_runs"
@@ -114,7 +123,9 @@ def test_latest_evidence_run_used(tmp_path: Path, evidence_output_dir):
 
 @pytest.mark.requirement("INF-001")
 def test_evidence_report_serializes_and_merges(tmp_path, capsys, evidence_output_dir):
-    report = EvidenceReport(subject="EvidenceReport serializes to dict/json/markdown and merges child reports correctly")
+    report = EvidenceReport(
+        subject="EvidenceReport serializes to dict/json/markdown and merges child reports correctly"
+    )
 
     class Provider:
         def get_ids(self, tag):
@@ -156,14 +167,16 @@ def test_evidence_report_serializes_and_merges(tmp_path, capsys, evidence_output
     assert "warning note" in md_path.read_text()
     assert "Serialization test" in capsys.readouterr().out
 
-    report.info(f"serialization_round_trip_correct=True, merge_propagates_errors=True", "INF-001")
+    report.info("serialization_round_trip_correct=True, merge_propagates_errors=True", "INF-001")
     report.auto_save("inf001_evidence_report_serializes_and_merges", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("INF-001")
 def test_evidence_report_auto_save_and_invalid_format(tmp_path, capsys, evidence_output_dir):
-    report = EvidenceReport(subject="EvidenceReport.auto_save sanitizes filenames and raises on unsupported formats")
+    report = EvidenceReport(
+        subject="EvidenceReport.auto_save sanitizes filenames and raises on unsupported formats"
+    )
 
     class EmptyProvider:
         def get_ids(self, tag):
@@ -195,7 +208,9 @@ def test_evidence_report_auto_save_and_invalid_format(tmp_path, capsys, evidence
 
 @pytest.mark.requirement("INF-004")
 def test_generate_evidence_summary_skips_invalid_json(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="generate_evidence_summary skips malformed JSON files without crashing")
+    report = EvidenceReport(
+        subject="generate_evidence_summary skips malformed JSON files without crashing"
+    )
 
     (tmp_path / "pass.json").write_text(json.dumps({"result": "PASS"}))
     (tmp_path / "fail.json").write_text(json.dumps({"result": "FAIL"}))
@@ -203,7 +218,10 @@ def test_generate_evidence_summary_skips_invalid_json(tmp_path, evidence_output_
 
     summary = generate_evidence_summary(tmp_path)
 
-    report.info(f"total={summary['total_tests']}, passed={summary['passed']}, failed={summary['failed']}", "INF-004")
+    report.info(
+        f"total={summary['total_tests']}, passed={summary['passed']}, failed={summary['failed']}",
+        "INF-004",
+    )
     report.auto_save("inf004_generate_evidence_summary_skips_invalid_json", evidence_output_dir)
     assert not report.has_errors, report.summary()
     assert summary == {"total_tests": 2, "passed": 1, "failed": 1}
@@ -211,7 +229,9 @@ def test_generate_evidence_summary_skips_invalid_json(tmp_path, evidence_output_
 
 @pytest.mark.requirement("VER-005")
 def test_compute_code_coverage_and_save_uncovered_lines(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="compute_code_coverage parses coverage.xml and save_uncovered_lines writes line numbers")
+    report = EvidenceReport(
+        subject="compute_code_coverage parses coverage.xml and save_uncovered_lines writes line numbers"
+    )
 
     coverage_dir = tmp_path / "artifacts" / "coverage"
     coverage_dir.mkdir(parents=True)
@@ -250,7 +270,9 @@ def test_compute_code_coverage_and_save_uncovered_lines(tmp_path, evidence_outpu
 
 @pytest.mark.requirement("VER-005")
 def test_compute_requirement_coverage_and_find_unmarked_tests(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="compute_requirement_coverage counts PASS+LINKED as tested; find_unmarked_tests detects unannotated test functions")
+    report = EvidenceReport(
+        subject="compute_requirement_coverage counts PASS+LINKED as tested; find_unmarked_tests detects unannotated test functions"
+    )
 
     matrix = [
         {"requirement_id": "VER-001", "status": "PASS"},
@@ -269,9 +291,15 @@ def test_compute_requirement_coverage_and_find_unmarked_tests(tmp_path, evidence
 
     unmarked = find_unmarked_tests(test_dir)
 
-    report.info(f"coverage={coverage}%, tested={tested}, total={total}, untested={untested}", "VER-005")
-    report.info(f"unmarked_test_detected={str(test_dir / 'test_unmarked.py') in unmarked}", "VER-005")
-    report.auto_save("ver005_compute_requirement_coverage_and_find_unmarked_tests", evidence_output_dir)
+    report.info(
+        f"coverage={coverage}%, tested={tested}, total={total}, untested={untested}", "VER-005"
+    )
+    report.info(
+        f"unmarked_test_detected={str(test_dir / 'test_unmarked.py') in unmarked}", "VER-005"
+    )
+    report.auto_save(
+        "ver005_compute_requirement_coverage_and_find_unmarked_tests", evidence_output_dir
+    )
     assert not report.has_errors, report.summary()
     assert coverage == pytest.approx(66.66666666666666)
     assert tested == 2
@@ -282,7 +310,9 @@ def test_compute_requirement_coverage_and_find_unmarked_tests(tmp_path, evidence
 
 @pytest.mark.requirement("SYS-001")
 def test_traceability_module_main_dispatches(monkeypatch, tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="regulatory_tools.traceability.__main__.main dispatches to generate_traceability_matrix with the project root argument")
+    report = EvidenceReport(
+        subject="regulatory_tools.traceability.__main__.main dispatches to generate_traceability_matrix with the project root argument"
+    )
 
     called = {}
 
@@ -302,7 +332,9 @@ def test_traceability_module_main_dispatches(monkeypatch, tmp_path, evidence_out
 
 @pytest.mark.requirement("SYS-001")
 def test_traceability_module_main_requires_project_root(monkeypatch, capsys, evidence_output_dir):
-    report = EvidenceReport(subject="regulatory_tools.traceability.__main__.main exits 1 with usage message when project root argument is missing")
+    report = EvidenceReport(
+        subject="regulatory_tools.traceability.__main__.main exits 1 with usage message when project root argument is missing"
+    )
 
     monkeypatch.setattr(sys, "argv", ["traceability"])
 

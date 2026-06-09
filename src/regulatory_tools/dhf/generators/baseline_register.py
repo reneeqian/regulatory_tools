@@ -17,7 +17,9 @@ class BaselineRegisterGenerator:
     def generate_rows(self) -> str:
         tags_out = subprocess.run(
             ["git", "tag", "-l", "--sort=version:refname"],
-            capture_output=True, text=True, cwd=self._repo,
+            capture_output=True,
+            text=True,
+            cwd=self._repo,
         ).stdout.strip()
 
         if not tags_out:
@@ -28,11 +30,15 @@ class BaselineRegisterGenerator:
         for tag in tags:
             sha = subprocess.run(
                 ["git", "rev-parse", tag],
-                capture_output=True, text=True, cwd=self._repo,
+                capture_output=True,
+                text=True,
+                cwd=self._repo,
             ).stdout.strip()[:12]
             date = subprocess.run(
                 ["git", "log", "-1", "--format=%ci", tag],
-                capture_output=True, text=True, cwd=self._repo,
+                capture_output=True,
+                text=True,
+                cwd=self._repo,
             ).stdout.strip()
             lines.append(f"| {tag} | {sha} | {date} |")
 

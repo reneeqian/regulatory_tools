@@ -8,15 +8,13 @@ def detect_source_package(project_root):
 
     src = project_root / "src"
 
-    packages = [
-        p for p in src.iterdir()
-        if p.is_dir() and (p / "__init__.py").exists()
-    ]
+    packages = [p for p in src.iterdir() if p.is_dir() and (p / "__init__.py").exists()]
 
     if not packages:
         raise RuntimeError("No package found in src/")
 
     return packages[0]
+
 
 def run_pytest_with_coverage(project_root: Path):
     test_dir = project_root / "tests"

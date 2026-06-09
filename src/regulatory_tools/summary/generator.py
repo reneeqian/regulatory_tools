@@ -1,4 +1,5 @@
 """Project status summary generator (DOC-005)."""
+
 from __future__ import annotations
 
 import json
@@ -46,6 +47,7 @@ def generate_project_summary(
 # Section renderers
 # ---------------------------------------------------------------------------
 
+
 def _section_header(project_root: Path) -> str:
     req_file = project_root / "docs" / "requirements.yaml"
     if not req_file.exists():
@@ -66,7 +68,10 @@ def _section_recent_commits(project_root: Path) -> str:
     try:
         result = subprocess.run(
             ["git", "log", "--format=%h %s", f"-{_COMMIT_COUNT}"],
-            capture_output=True, text=True, timeout=10, cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=project_root,
         )
         lines = [ln for ln in result.stdout.strip().splitlines() if ln]
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -83,7 +88,10 @@ def _get_remote_url(project_root: Path) -> str:
     try:
         result = subprocess.run(
             ["git", "remote", "get-url", "origin"],
-            capture_output=True, text=True, timeout=5, cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=project_root,
         )
         return result.stdout.strip()
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -104,13 +112,26 @@ def _section_open_issues(project_root: Path) -> str:
 
     try:
         result = subprocess.run(
-            ["gh", "issue", "list", "--repo", repo_slug, "--state", "open",
-             "--json", "number,title,url"],
-            capture_output=True, text=True, timeout=15,
+            [
+                "gh",
+                "issue",
+                "list",
+                "--repo",
+                repo_slug,
+                "--state",
+                "open",
+                "--json",
+                "number,title,url",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         issues = json.loads(result.stdout) if result.stdout.strip() else []
     except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
-        return "## Open Issues\n\n_Could not fetch issues (gh CLI unavailable or not authenticated)._"
+        return (
+            "## Open Issues\n\n_Could not fetch issues (gh CLI unavailable or not authenticated)._"
+        )
 
     if not issues:
         return "## Open Issues\n\n_No open issues._"
@@ -173,7 +194,7 @@ def _section_user_needs(project_root: Path) -> str:
         return "## User Needs\n\n_No user needs defined._"
 
     rows = [
-        f"| {r.get('id','—')} | {r.get('title','—')} | {r.get('intended_user','—')} | {r.get('verification_method','—')} |"
+        f"| {r.get('id', '—')} | {r.get('title', '—')} | {r.get('intended_user', '—')} | {r.get('verification_method', '—')} |"
         for r in reqs
     ]
     table = "| ID | Title | Intended User | Verification |\n|---|---|---|---|\n" + "\n".join(rows)
@@ -216,10 +237,13 @@ def _section_soup(project_root: Path) -> str:
         return "## SOUP\n\n_No SOUP entries._"
 
     rows = [
-        f"| {e.get('name','—')} | {e.get('version','—')} | {e.get('intended_use', e.get('purpose','—'))} | {e.get('risk','—')} | {e.get('verified_by','—')} |"
+        f"| {e.get('name', '—')} | {e.get('version', '—')} | {e.get('intended_use', e.get('purpose', '—'))} | {e.get('risk', '—')} | {e.get('verified_by', '—')} |"
         for e in entries
     ]
-    table = "| Name | Version | Intended Use | Risk | Verified By |\n|---|---|---|---|---|\n" + "\n".join(rows)
+    table = (
+        "| Name | Version | Intended Use | Risk | Verified By |\n|---|---|---|---|---|\n"
+        + "\n".join(rows)
+    )
     return f"## SOUP\n\n{table}"
 
 
@@ -234,10 +258,13 @@ def _section_hazards(project_root: Path) -> str:
         return "## Hazards\n\n_No hazards defined._"
 
     rows = [
-        f"| {h.get('id','—')} | {h.get('hazard','—')} | {h.get('severity','—')} | {h.get('probability','—')} | {h.get('mitigation_ref','—')} |"
+        f"| {h.get('id', '—')} | {h.get('hazard', '—')} | {h.get('severity', '—')} | {h.get('probability', '—')} | {h.get('mitigation_ref', '—')} |"
         for h in hazards
     ]
-    table = "| ID | Hazard | Severity | Probability | Mitigation |\n|---|---|---|---|---|\n" + "\n".join(rows)
+    table = (
+        "| ID | Hazard | Severity | Probability | Mitigation |\n|---|---|---|---|---|\n"
+        + "\n".join(rows)
+    )
     return f"## Hazards\n\n{table}"
 
 
@@ -254,7 +281,7 @@ def _section_anomalies(project_root: Path) -> str:
         return "## Anomalies\n\nNo open anomalies."
 
     rows = [
-        f"| {a.get('id','—')} | {a.get('title','—')} | {a.get('status','—')} | {a.get('priority', a.get('severity','—'))} |"
+        f"| {a.get('id', '—')} | {a.get('title', '—')} | {a.get('status', '—')} | {a.get('priority', a.get('severity', '—'))} |"
         for a in open_anoms
     ]
     table = "| ID | Title | Status | Priority |\n|---|---|---|---|\n" + "\n".join(rows)

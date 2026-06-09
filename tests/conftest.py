@@ -1,18 +1,20 @@
 from datetime import datetime
 from pathlib import Path
-import pytest
 
+import pytest
 
 # ---------------------------------------------------------------------
 # Project Root
 # ---------------------------------------------------------------------
+
 
 @pytest.fixture(scope="session")
 def project_root() -> Path:
     """
     Returns the root of the Coronary_prj project.
     """
-    return Path(__file__).resolve().parents[1] 
+    return Path(__file__).resolve().parents[1]
+
 
 # ---------------------------------------------------------------------
 # Evidence Output Directory

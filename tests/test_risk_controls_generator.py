@@ -2,14 +2,14 @@
 Tests for regulatory_tools.dhf.generators.risk_controls — RiskControlsGenerator (DHF-004).
 These tests must fail before RiskControlsGenerator exists.
 """
+
 import textwrap
 
 import pytest
 
-from regulatory_tools.evidence.evidence_report import EvidenceReport
-from regulatory_tools.dhf.requirements_reader import RequirementsReader
 from regulatory_tools.dhf.generators.risk_controls import RiskControlsGenerator
-
+from regulatory_tools.dhf.requirements_reader import RequirementsReader
+from regulatory_tools.evidence.evidence_report import EvidenceReport
 
 REQS_WITH_RSK = textwrap.dedent("""
     metadata:
@@ -34,7 +34,9 @@ REQS_WITH_RSK = textwrap.dedent("""
 
 @pytest.mark.requirement("DHF-004")
 def test_risk_controls_generates_rows_for_rsk_requirements(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-004: RiskControlsGenerator produces table rows for all RSK requirements")
+    report = EvidenceReport(
+        subject="DHF-004: RiskControlsGenerator produces table rows for all RSK requirements"
+    )
 
     reqs_file = tmp_path / "requirements.yaml"
     reqs_file.write_text(REQS_WITH_RSK)
@@ -48,14 +50,16 @@ def test_risk_controls_generates_rows_for_rsk_requirements(tmp_path, evidence_ou
     assert "RSK-002" in rows
     assert "Partition overlap" in rows
 
-    report.info(f"generate_rows() produced rows for RSK-001 and RSK-002", "DHF-004")
+    report.info("generate_rows() produced rows for RSK-001 and RSK-002", "DHF-004")
     report.auto_save("dhf004_risk_controls_rows", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-004")
 def test_risk_controls_non_rsk_requirements_excluded(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-004: RiskControlsGenerator excludes non-risk-control requirements")
+    report = EvidenceReport(
+        subject="DHF-004: RiskControlsGenerator excludes non-risk-control requirements"
+    )
 
     reqs_file = tmp_path / "requirements.yaml"
     reqs_file.write_text(REQS_WITH_RSK)
@@ -67,14 +71,19 @@ def test_risk_controls_non_rsk_requirements_excluded(tmp_path, evidence_output_d
     # SYS-001 may appear in the "Derived From" column — it must not be a row ID (first column)
     assert not any(line.startswith("| SYS-001 ") for line in rows.splitlines())
 
-    report.info("SYS-001 does not appear as a row ID in risk controls output (only in derived_from)", "DHF-004")
+    report.info(
+        "SYS-001 does not appear as a row ID in risk controls output (only in derived_from)",
+        "DHF-004",
+    )
     report.auto_save("dhf004_risk_controls_non_rsk_excluded", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-004")
 def test_risk_controls_partial_rows_have_manual_fill_markers(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-004: Risk control rows contain manual fill markers for narrative columns")
+    report = EvidenceReport(
+        subject="DHF-004: Risk control rows contain manual fill markers for narrative columns"
+    )
 
     reqs_file = tmp_path / "requirements.yaml"
     reqs_file.write_text(REQS_WITH_RSK)
@@ -93,7 +102,9 @@ def test_risk_controls_partial_rows_have_manual_fill_markers(tmp_path, evidence_
 
 @pytest.mark.requirement("DHF-004")
 def test_risk_controls_empty_when_no_rsk_requirements(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-004: RiskControlsGenerator returns empty string when no risk_control requirements exist")
+    report = EvidenceReport(
+        subject="DHF-004: RiskControlsGenerator returns empty string when no risk_control requirements exist"
+    )
 
     no_rsk = textwrap.dedent("""
         metadata:
