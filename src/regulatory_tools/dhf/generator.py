@@ -35,8 +35,10 @@ class DHFGenerator:
         self._filler = PlaceholderFiller(context.as_placeholder_dict())
 
     @classmethod
-    def from_config(cls, dhf_root: Path, context_file: Path) -> "DHFGenerator":
-        ctx = DHFContext.from_yaml(context_file)
+    def from_config(
+        cls, dhf_root: Path, context_file: Path, base_dir: Path | None = None
+    ) -> "DHFGenerator":
+        ctx = DHFContext.from_yaml(context_file, base_dir=base_dir)
         DHFValidator(ctx).validate()
         return cls(dhf_root, ctx)
 
@@ -118,9 +120,7 @@ class DHFGenerator:
 
     def scaffold_missing_sections(self) -> DHFGenerationReport:
         report = DHFGenerationReport()
-        scaffolder = SectionScaffolder(
-            self._ctx.templates_root, self._root, self._filler
-        )
+        scaffolder = SectionScaffolder(self._ctx.templates_root, self._root, self._filler)
         created = scaffolder.scaffold_missing()
         report.scaffolded_sections = created
         report.files_modified = list(created)

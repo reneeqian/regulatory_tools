@@ -27,6 +27,7 @@ def _try_import_forge() -> bool:
         return _FORGE_AVAILABLE
     try:
         from forge.aggregator import Aggregator  # noqa: F401
+
         _FORGE_AVAILABLE = True
     except ImportError:
         _FORGE_AVAILABLE = False
@@ -46,6 +47,7 @@ def get_forge_health(project_root: Path) -> "ProjectHealthReport | None":
         return None
     try:
         from forge.aggregator import Aggregator
+
         return Aggregator().run(project_root, skip_test_run=True)
     except Exception as exc:
         print(f"[forge_integration] forge health check failed: {exc}")
@@ -163,11 +165,7 @@ def update_readme_forge_health(project_root: Path, forge_summary: dict) -> None:
 
     table = "\n".join(["| Collector | Score |", "|-----------|-------|"] + rows) if rows else ""
 
-    block = (
-        f"*Last run: {generated_at}*\n\n"
-        f"**Grade: {grade}** (score: {score_display})\n\n"
-        f"{table}"
-    )
+    block = f"*Last run: {generated_at}*\n\n**Grade: {grade}** (score: {score_display})\n\n{table}"
 
     report_section = f"{_README_START}\n{block}\n{_README_END}"
 

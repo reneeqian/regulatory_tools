@@ -1,11 +1,11 @@
 """Tests for regulatory_tools.quality.rsk_checker."""
+
 import textwrap
 
 import pytest
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.quality.rsk_checker import check_rsk_requirements
-
 
 REQUIREMENTS_WITH_RSK = textwrap.dedent("""\
     requirements:
@@ -84,7 +84,9 @@ def test_rsk_checker_finds_rsk_in_risk_controls_yaml(tmp_path, evidence_output_d
 
 @pytest.mark.requirement("RSK-001")
 def test_rsk_checker_returns_not_found_when_no_docs(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="RSK checker returns found=False when docs/ directory has no requirement files")
+    report = EvidenceReport(
+        subject="RSK checker returns found=False when docs/ directory has no requirement files"
+    )
 
     result = check_rsk_requirements(tmp_path)
 
@@ -98,7 +100,9 @@ def test_rsk_checker_returns_not_found_when_no_docs(tmp_path, evidence_output_di
 
 @pytest.mark.requirement("RSK-001")
 def test_rsk_checker_deduplicates_ids(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="RSK checker deduplicates RSK- IDs that appear in multiple files")
+    report = EvidenceReport(
+        subject="RSK checker deduplicates RSK- IDs that appear in multiple files"
+    )
 
     (tmp_path / "docs").mkdir()
     # RSK-001 in both files
@@ -107,7 +111,9 @@ def test_rsk_checker_deduplicates_ids(tmp_path, evidence_output_dir):
 
     result = check_rsk_requirements(tmp_path)
 
-    assert result["rsk_ids"].count("RSK-001") == 1, "RSK-001 must appear exactly once despite being in two files"
+    assert result["rsk_ids"].count("RSK-001") == 1, (
+        "RSK-001 must appear exactly once despite being in two files"
+    )
 
     report.info(f"rsk_ids={result['rsk_ids']} — no duplicates", "RSK-001")
     report.auto_save("rsk001_checker_deduplicates", evidence_output_dir)

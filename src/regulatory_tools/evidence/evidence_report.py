@@ -2,12 +2,12 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 @dataclass
 class EvidenceIssue:
-    level: str                  # ERROR | WARN | INFO
+    level: str  # ERROR | WARN | INFO
     message: str
     requirement_tag: str | None  # <-- ADD
     context: str | None = None
@@ -20,8 +20,7 @@ class EvidenceReport:
     timestamp: datetime = field(default_factory=datetime.utcnow)
     issues: List[EvidenceIssue] = field(default_factory=list)
     requirements: set[str] = field(default_factory=set)
-    requirement_provider: Optional[object] = None
-
+    requirement_provider: Optional[Any] = None
 
     def error(self, message: str, requirement_tag: str | None, context: str | None = None):
         if requirement_tag:
@@ -69,9 +68,9 @@ class EvidenceReport:
         return "\n".join(lines)
 
     def print_summary(self) -> None:
-        errors   = [i for i in self.issues if i.level == "ERROR"]
+        errors = [i for i in self.issues if i.level == "ERROR"]
         warnings = [i for i in self.issues if i.level == "WARN"]
-        infos    = [i for i in self.issues if i.level == "INFO"]
+        infos = [i for i in self.issues if i.level == "INFO"]
 
         status = "❌ FAIL" if errors else "✅ PASS"
 
@@ -86,6 +85,7 @@ class EvidenceReport:
 
             # Group by message so repeated occurrences collapse into one row with a count
             from collections import defaultdict
+
             grouped = defaultdict(list)  # message -> [context, ...]
             for i in issues:
                 grouped[i.message].append(i.context or "")
@@ -108,12 +108,11 @@ class EvidenceReport:
                 if count > 4:
                     print(f"       ↳ … and {count - 3} more (see full report for details)")
 
-        _render_group(errors,   "❌", "ERRORS")
+        _render_group(errors, "❌", "ERRORS")
         _render_group(warnings, "⚠️ ", "WARNINGS")
         # Info is intentionally suppressed in terminal output (too verbose)
 
         print(f"\n{'─' * 62}\n")
-
 
     def to_dict(self) -> dict:
         return {
@@ -121,7 +120,7 @@ class EvidenceReport:
             "subject": self.subject,
             "timestamp": self.timestamp.isoformat(),
             "result": self.result,
-            "requirement_tags": sorted(self.requirements),   # 👈 keep this
+            "requirement_tags": sorted(self.requirements),  # 👈 keep this
             "requirements": sorted(self.resolve_requirement_ids()),  # 👈 resolved
             "issues": [
                 {
@@ -184,12 +183,11 @@ class EvidenceReport:
 
         self.requirements.update(other.requirements)
 
-
     def resolve_requirement_ids(self) -> set[str]:
         if not self.requirement_provider:
             return set()
 
-        resolved = set()
+        resolved: set[str] = set()
 
         for tag in self.requirements:
             ids = self.requirement_provider.get_ids(tag) or []
@@ -201,6 +199,7 @@ class EvidenceReport:
             resolved.update(ids)
 
         return resolved
+
 
 def generate_evidence_summary(evidence_run_dir: Path) -> dict:
     """
@@ -214,7 +213,6 @@ def generate_evidence_summary(evidence_run_dir: Path) -> dict:
     failed = 0
 
     for record_file in evidence_run_dir.glob("*.json"):
-
         try:
             record = json.loads(record_file.read_text())
         except Exception:

@@ -15,10 +15,7 @@ _TABLE_HEADER = (
     " | Safety Impact | Resolution | Linked PR | Closed |\n"
     "|---|---|---|---|---|---|---|---|---|\n"
 )
-_UNRESOLVED_HEADER = (
-    "| ANO-ID | Severity | Rationale for Deferral |\n"
-    "|---|---|---|\n"
-)
+_UNRESOLVED_HEADER = "| ANO-ID | Severity | Rationale for Deferral |\n|---|---|---|\n"
 
 
 class AnomalyLogGenerator:
@@ -53,18 +50,13 @@ class AnomalyLogGenerator:
 
     def generate_unresolved_rows(self) -> str:
         entries = self._load()
-        open_entries = [
-            e for e in entries
-            if str(e.get("status", "")).lower() in _OPEN_STATUSES
-        ]
+        open_entries = [e for e in entries if str(e.get("status", "")).lower() in _OPEN_STATUSES]
         if not open_entries:
             return _UNRESOLVED_HEADER + "| — | — | — |\n"
         lines = [_UNRESOLVED_HEADER.rstrip("\n")]
         for e in open_entries:
             lines.append(
-                f"| {e.get('id', '—')} "
-                f"| {e.get('severity', '—')} "
-                f"| {e.get('resolution', '—')} |"
+                f"| {e.get('id', '—')} | {e.get('severity', '—')} | {e.get('resolution', '—')} |"
             )
         return "\n".join(lines) + "\n"
 

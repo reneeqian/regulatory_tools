@@ -2,15 +2,15 @@
 Tests for regulatory_tools.dhf.validator — DHFValidator (DHF-009).
 These tests must fail before DHFValidator exists.
 """
+
 import textwrap
 from pathlib import Path
 
 import pytest
 
-from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.dhf.context import DHFContext
-from regulatory_tools.dhf.validator import DHFValidator, DHFValidationError
-
+from regulatory_tools.dhf.validator import DHFValidationError, DHFValidator
+from regulatory_tools.evidence.evidence_report import EvidenceReport
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -87,13 +87,16 @@ def _make_valid_setup(tmp_path: Path) -> tuple[DHFContext, Path]:
 # Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.requirement("DHF-009")
 def test_validator_passes_on_valid_setup(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-009: DHFValidator.validate() passes silently when all inputs are valid")
+    report = EvidenceReport(
+        subject="DHF-009: DHFValidator.validate() passes silently when all inputs are valid"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     validator = DHFValidator(ctx)
-    validator.validate()   # must not raise
+    validator.validate()  # must not raise
 
     report.info("DHFValidator.validate() completed without raising", "DHF-009")
     report.auto_save("dhf009_validator_valid_setup", evidence_output_dir)
@@ -102,7 +105,9 @@ def test_validator_passes_on_valid_setup(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-009")
 def test_validator_raises_when_soup_missing(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-009: DHFValidator raises DHFValidationError when soup.yaml is missing")
+    report = EvidenceReport(
+        subject="DHF-009: DHFValidator raises DHFValidationError when soup.yaml is missing"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     # Remove the soup file after context is loaded
@@ -120,7 +125,9 @@ def test_validator_raises_when_soup_missing(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-009")
 def test_validator_raises_when_requirements_missing(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-009: DHFValidator raises when requirements.yaml is missing")
+    report = EvidenceReport(
+        subject="DHF-009: DHFValidator raises when requirements.yaml is missing"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     Path(ctx.data_sources["requirements"]).unlink()
@@ -130,17 +137,20 @@ def test_validator_raises_when_requirements_missing(tmp_path, evidence_output_di
 
     assert "requirement" in str(exc_info.value).lower()
 
-    report.info(f"Missing requirements.yaml raised DHFValidationError", "DHF-009")
+    report.info("Missing requirements.yaml raised DHFValidationError", "DHF-009")
     report.auto_save("dhf009_validator_missing_requirements", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-009")
 def test_validator_raises_when_evidence_runs_dir_missing(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-009: DHFValidator raises when evidence_runs directory does not exist")
+    report = EvidenceReport(
+        subject="DHF-009: DHFValidator raises when evidence_runs directory does not exist"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     import shutil
+
     shutil.rmtree(ctx.data_sources["evidence_runs"])
 
     with pytest.raises(DHFValidationError) as exc_info:
@@ -148,14 +158,16 @@ def test_validator_raises_when_evidence_runs_dir_missing(tmp_path, evidence_outp
 
     assert "evidence" in str(exc_info.value).lower()
 
-    report.info(f"Missing evidence_runs dir raised DHFValidationError", "DHF-009")
+    report.info("Missing evidence_runs dir raised DHFValidationError", "DHF-009")
     report.auto_save("dhf009_validator_missing_evidence_runs", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-009")
 def test_validator_collects_all_violations_before_raising(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-009: DHFValidator reports all violations, not just the first")
+    report = EvidenceReport(
+        subject="DHF-009: DHFValidator reports all violations, not just the first"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     # Remove two files at once
@@ -169,17 +181,20 @@ def test_validator_collects_all_violations_before_raising(tmp_path, evidence_out
     assert "soup" in error_text.lower()
     assert "requirement" in error_text.lower()
 
-    report.info(f"Two missing files → single DHFValidationError with both mentioned", "DHF-009")
+    report.info("Two missing files → single DHFValidationError with both mentioned", "DHF-009")
     report.auto_save("dhf009_validator_all_violations", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
 
 @pytest.mark.requirement("DHF-009")
 def test_validator_raises_when_requirements_yaml_has_duplicate_ids(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-009: DHFValidator raises when requirements.yaml has duplicate IDs")
+    report = EvidenceReport(
+        subject="DHF-009: DHFValidator raises when requirements.yaml has duplicate IDs"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
-    Path(ctx.data_sources["requirements"]).write_text(textwrap.dedent("""
+    Path(ctx.data_sources["requirements"]).write_text(
+        textwrap.dedent("""
         metadata:
           project: test
           version: 1.0
@@ -190,14 +205,15 @@ def test_validator_raises_when_requirements_yaml_has_duplicate_ids(tmp_path, evi
           - id: SYS-001
             title: Duplicate
             description: Duplicate.
-    """))
+    """)
+    )
 
     with pytest.raises(DHFValidationError) as exc_info:
         DHFValidator(ctx).validate()
 
     assert "SYS-001" in str(exc_info.value)
 
-    report.info(f"Duplicate SYS-001 raised DHFValidationError", "DHF-009")
+    report.info("Duplicate SYS-001 raised DHFValidationError", "DHF-009")
     report.auto_save("dhf009_validator_duplicate_ids", evidence_output_dir)
     assert not report.has_errors, report.summary()
 
@@ -242,7 +258,9 @@ REQS_ALL_LINKED = textwrap.dedent("""\
 
 @pytest.mark.requirement("DHF-011")
 def test_validator_raises_on_orphaned_non_user_need(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-011: DHFValidator raises when a non-user_need requirement has no derived_from")
+    report = EvidenceReport(
+        subject="DHF-011: DHFValidator raises when a non-user_need requirement has no derived_from"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     Path(ctx.data_sources["requirements"]).write_text(REQS_WITH_ORPHAN)
@@ -260,7 +278,9 @@ def test_validator_raises_on_orphaned_non_user_need(tmp_path, evidence_output_di
 
 @pytest.mark.requirement("DHF-011")
 def test_validator_passes_when_user_need_has_no_derived_from(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-011: DHFValidator passes when user_need has no derived_from (top of hierarchy)")
+    report = EvidenceReport(
+        subject="DHF-011: DHFValidator passes when user_need has no derived_from (top of hierarchy)"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     Path(ctx.data_sources["requirements"]).write_text(REQS_ALL_LINKED)
@@ -331,7 +351,9 @@ REQS_MISSING_FILE_ROLE = textwrap.dedent("""\
 
 @pytest.mark.requirement("DHF-013")
 def test_validator_passes_with_valid_prefix_and_type(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-013: DHFValidator passes when all ID prefixes and types match metadata constraints")
+    report = EvidenceReport(
+        subject="DHF-013: DHFValidator passes when all ID prefixes and types match metadata constraints"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     Path(ctx.data_sources["requirements"]).write_text(REQS_WITH_METADATA)
@@ -345,7 +367,9 @@ def test_validator_passes_with_valid_prefix_and_type(tmp_path, evidence_output_d
 
 @pytest.mark.requirement("DHF-013")
 def test_validator_raises_on_forbidden_prefix(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-013: DHFValidator raises when requirement ID prefix is not in allowed_prefixes")
+    report = EvidenceReport(
+        subject="DHF-013: DHFValidator raises when requirement ID prefix is not in allowed_prefixes"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     Path(ctx.data_sources["requirements"]).write_text(REQS_BAD_PREFIX)
@@ -363,7 +387,9 @@ def test_validator_raises_on_forbidden_prefix(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-013")
 def test_validator_raises_on_forbidden_type(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-013: DHFValidator raises when requirement type is not in allowed_types")
+    report = EvidenceReport(
+        subject="DHF-013: DHFValidator raises when requirement type is not in allowed_types"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     Path(ctx.data_sources["requirements"]).write_text(REQS_BAD_TYPE)
@@ -381,7 +407,9 @@ def test_validator_raises_on_forbidden_type(tmp_path, evidence_output_dir):
 
 @pytest.mark.requirement("DHF-013")
 def test_validator_raises_when_file_role_missing(tmp_path, evidence_output_dir):
-    report = EvidenceReport(subject="DHF-013: DHFValidator raises when a requirement file has no metadata.file_role")
+    report = EvidenceReport(
+        subject="DHF-013: DHFValidator raises when a requirement file has no metadata.file_role"
+    )
 
     ctx, _ = _make_valid_setup(tmp_path)
     Path(ctx.data_sources["requirements"]).write_text(REQS_MISSING_FILE_ROLE)

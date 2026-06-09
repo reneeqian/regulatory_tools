@@ -1,4 +1,5 @@
 """Tests for regulatory_tools.summary.generator (DOC-005)."""
+
 import json
 import textwrap
 from pathlib import Path
@@ -8,7 +9,6 @@ import pytest
 
 from regulatory_tools.evidence.evidence_report import EvidenceReport
 from regulatory_tools.summary.generator import generate_project_summary  # fails until module exists
-
 
 # ---------------------------------------------------------------------------
 # Inline YAML fixtures — minimal but structurally valid
@@ -110,9 +110,15 @@ _GIT_LOG_OUTPUT = (
     "ghi9012 feat: add nongated ingestor\n"
     "jkl3456 chore: bump version\n"
 )
-_GH_ISSUES_OUTPUT = json.dumps([
-    {"number": 42, "title": "Add nongated evaluator", "url": "https://github.com/owner/repo/issues/42"},
-])
+_GH_ISSUES_OUTPUT = json.dumps(
+    [
+        {
+            "number": 42,
+            "title": "Add nongated evaluator",
+            "url": "https://github.com/owner/repo/issues/42",
+        },
+    ]
+)
 
 
 def _fake_subprocess(cmd, **kwargs):
@@ -128,6 +134,7 @@ def _fake_subprocess(cmd, **kwargs):
 # ---------------------------------------------------------------------------
 # Main test: all sections present
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.requirement("DOC-005")
 def test_generate_project_summary_produces_all_sections(full_project_root, evidence_output_dir):
@@ -162,7 +169,9 @@ def test_generate_project_summary_produces_all_sections(full_project_root, evide
     assert "abc1234" in content, "recent commit hash must appear"
     report.info("Recent commit hash found in output", "DOC-005")
 
-    assert "https://github.com/owner/repo/issues/42" in content, "issue URL must appear as hyperlink"
+    assert "https://github.com/owner/repo/issues/42" in content, (
+        "issue URL must appear as hyperlink"
+    )
     report.info("Open issue URL found in output", "DOC-005")
 
     report.auto_save("doc005_project_summary_all_sections", evidence_output_dir)
@@ -172,6 +181,7 @@ def test_generate_project_summary_produces_all_sections(full_project_root, evide
 # ---------------------------------------------------------------------------
 # Graceful fallback: missing optional docs
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.requirement("DOC-005")
 def test_missing_optional_docs_do_not_crash(tmp_path, evidence_output_dir):
@@ -203,6 +213,7 @@ def test_missing_optional_docs_do_not_crash(tmp_path, evidence_output_dir):
 # Graceful fallback: gh not installed
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.requirement("DOC-005")
 def test_gh_not_available_does_not_crash(full_project_root, evidence_output_dir):
     report = EvidenceReport(
@@ -223,7 +234,9 @@ def test_gh_not_available_does_not_crash(full_project_root, evidence_output_dir)
 
     assert output_path.exists()
     content = output_path.read_text()
-    assert "## Open Issues" in content, "Open Issues section must appear even when gh is unavailable"
+    assert "## Open Issues" in content, (
+        "Open Issues section must appear even when gh is unavailable"
+    )
     report.info("Open Issues section present even when gh is unavailable", "DOC-005")
 
     report.auto_save("doc005_gh_not_available", evidence_output_dir)

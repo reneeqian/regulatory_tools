@@ -16,16 +16,9 @@ def compute_requirement_coverage(
 
     total = len(matrix)
 
-    tested = [
-        r for r in matrix
-        if r.get("status") in ("PASS", "COVERED", "LINKED")
-    ]
+    tested = [r for r in matrix if r.get("status") in ("PASS", "COVERED", "LINKED")]
 
-    untested = [
-        r["requirement_id"]
-        for r in matrix
-        if r.get("status") == "UNTESTED"
-    ]
+    untested = [r["requirement_id"] for r in matrix if r.get("status") == "UNTESTED"]
 
     tested_count = len(tested)
 
@@ -57,13 +50,11 @@ def compute_code_coverage(
     uncovered: dict[str, list[int]] = {}
 
     for cls in root.findall(".//class"):
-
         filename = cls.attrib["filename"]
 
         missing: list[int] = []
 
         for line in cls.findall(".//line"):
-
             if line.attrib.get("hits") == "0":
                 missing.append(int(line.attrib["number"]))
 
@@ -81,9 +72,7 @@ def save_uncovered_lines(project_root: Path, uncovered: dict[str, list[int]]) ->
     output = coverage_dir / "uncovered_lines.txt"
 
     with output.open("w") as f:
-
         for file, lines in sorted(uncovered.items()):
-
             f.write(f"{file}\n")
 
             for ln in lines:

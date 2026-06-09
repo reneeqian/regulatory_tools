@@ -1,4 +1,5 @@
 """Anomaly log existence checker — VER-010."""
+
 from __future__ import annotations
 
 from pathlib import Path

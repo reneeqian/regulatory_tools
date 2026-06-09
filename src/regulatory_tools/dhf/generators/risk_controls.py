@@ -24,9 +24,7 @@ class RiskControlsGenerator:
         ]
         for r in rsk_reqs:
             derived = ", ".join(r.derived_from) if r.derived_from else "—"
-            lines.append(
-                f"| {r.id} | {r.title} | <!-- FILL --> | <!-- FILL --> | {derived} |"
-            )
+            lines.append(f"| {r.id} | {r.title} | <!-- FILL --> | <!-- FILL --> | {derived} |")
         return "\n".join(lines) + "\n"
 
     def update_document(self, path: Path) -> None:
