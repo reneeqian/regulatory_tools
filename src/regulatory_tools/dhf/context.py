@@ -41,7 +41,7 @@ class DHFContext:
         return [Path(r)]
 
     @staticmethod
-    def from_yaml(path: Path) -> "DHFContext":
+    def from_yaml(path: Path, base_dir: Path | None = None) -> "DHFContext":
         try:
             with open(path) as f:
                 data = yaml.safe_load(f)
@@ -62,12 +62,18 @@ class DHFContext:
         if violations:
             raise DHFValidationError(violations)
 
+        def _resolve(raw: str) -> Path:
+            p = Path(raw)
+            if base_dir is not None and not p.is_absolute():
+                return (base_dir / p).resolve()
+            return p
+
         data_sources: dict[str, Any] = {}
         for k, v in ds_raw.items():
             if k == "requirements" and isinstance(v, list):
-                data_sources[k] = [str(p) for p in v]
+                data_sources[k] = [_resolve(str(p)) for p in v]
             else:
-                data_sources[k] = Path(v)
+                data_sources[k] = _resolve(str(v))
 
         return DHFContext(
             project_name=data["project_name"],
@@ -75,8 +81,8 @@ class DHFContext:
             code_repos=list(data["code_repos"]),
             author=data["author"],
             data_sources=data_sources,
-            templates_root=Path(data["templates_root"]),
-            git_repo=Path(data["git_repo"]),
+            templates_root=_resolve(data["templates_root"]),
+            git_repo=_resolve(data["git_repo"]),
         )
 
     def as_placeholder_dict(self) -> dict[str, str]:

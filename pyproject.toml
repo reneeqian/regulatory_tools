@@ -24,6 +24,7 @@ dev = [
 
 [project.scripts]
 regulatory-summary = "regulatory_tools.summary.__main__:main"
+regulatory-generate-dhf = "regulatory_tools.dhf.__main__:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
