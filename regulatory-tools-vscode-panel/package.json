@@ -35,12 +35,22 @@
         "command": "regulatory.refresh",
         "title": "Refresh Regulatory Dashboard",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "regulatory.generateDhf",
+        "title": "Generate DHF Documents",
+        "icon": "$(run)"
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "regulatory.refresh",
+          "when": "view == regulatorySidebar",
+          "group": "navigation"
+        },
+        {
+          "command": "regulatory.generateDhf",
           "when": "view == regulatorySidebar",
           "group": "navigation"
         }
