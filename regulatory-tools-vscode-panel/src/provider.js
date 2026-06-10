@@ -39,6 +39,11 @@ class RegulatoryWebviewProvider {
         cfg.update('primaryRepo', msg.name ?? '', vscode.ConfigurationTarget.Global)
           .then(() => this.refresh());
       }
+      if (msg.command === 'generateDhf') {
+        const roles = this._resolveRepos();
+        const docsRepo = roles?.docs.find(r => r.name === msg.docsRepoName);
+        if (docsRepo) this._runGenerateDhf(docsRepo.local_path, docsRepo.name, roles.primary);
+      }
     });
 
     webviewView.onDidChangeVisibility(() => {
@@ -230,6 +235,76 @@ class RegulatoryWebviewProvider {
     } catch { return false; }
   }
 
+  // ── DHF generation ───────────────────────────────────────────────────────────
+
+  generateDhf() {
+    const roles = this._resolveRepos();
+    if (!roles) {
+      vscode.window.showErrorMessage('No workspace folders open.');
+      return;
+    }
+    const docsRepos = roles.docs;
+    if (!docsRepos.length) {
+      vscode.window.showErrorMessage('No docs repo detected in this workspace.');
+      return;
+    }
+    if (docsRepos.length === 1) {
+      this._runGenerateDhf(docsRepos[0].local_path, docsRepos[0].name, roles.primary);
+    } else {
+      vscode.window.showQuickPick(docsRepos.map(r => r.name)).then(name => {
+        if (!name) return;
+        const repo = docsRepos.find(r => r.name === name);
+        this._runGenerateDhf(repo.local_path, repo.name, roles.primary);
+      });
+    }
+  }
+
+  _runGenerateDhf(docsRepoPath, docsRepoName, primary) {
+    if (!this._dhfChannel) {
+      this._dhfChannel = vscode.window.createOutputChannel('Regulatory — DHF');
+    }
+    const channel = this._dhfChannel;
+    channel.clear();
+    channel.show(true);
+    channel.appendLine(`Generating DHF documents for ${docsRepoName}…`);
+
+    const { python } = resolveProjectPython(primary?.name ?? '', primary?.local_path ?? '');
+    const pythonExe = python || 'python3';
+    const args = ['-m', 'regulatory_tools.dhf', docsRepoPath];
+    if (primary?.local_path) args.push('--base-dir', primary.local_path);
+
+    const { spawn } = require('child_process');
+    const proc = spawn(pythonExe, args);
+    let stdout = '';
+
+    proc.stdout.on('data', d => { stdout += d.toString(); });
+    proc.stderr.on('data', d => { channel.append(d.toString()); });
+
+    proc.on('close', code => {
+      if (code === 0) {
+        try {
+          const report = JSON.parse(stdout);
+          channel.appendLine(`Files modified (${report.files_modified.length}):`);
+          for (const f of report.files_modified) channel.appendLine(`  • ${f}`);
+          if (report.unfilled_vars.length) {
+            channel.appendLine(`Unfilled placeholders (${report.unfilled_vars.length}):`);
+            for (const [f, v] of report.unfilled_vars) channel.appendLine(`  • ${v}  in  ${f}`);
+          }
+          channel.appendLine('Done.');
+          this.refresh();
+        } catch (err) {
+          channel.appendLine(stdout);
+          channel.appendLine(`Parse error: ${err.message}`);
+        }
+      } else {
+        channel.appendLine(`Process exited with code ${code}.`);
+        vscode.window.showErrorMessage(
+          `DHF generation failed (exit ${code}). See "Regulatory — DHF" output.`
+        );
+      }
+    });
+  }
+
   // ── No-primary-repo banner ────────────────────────────────────────────────────
 
   _noPrimaryBanner(codeRepoNames) {
@@ -256,6 +331,7 @@ class RegulatoryWebviewProvider {
 
       <div id="reg-ctx-menu" class="reg-ctx-menu" style="display:none">
         <div class="reg-ctx-item" id="reg-ctx-set-primary"></div>
+        <div class="reg-ctx-item" id="reg-ctx-generate-dhf">Generate DHF</div>
       </div>
 
       ${needsPrimaryBanner ? this._noPrimaryBanner(roles.supporting.map(r => r.name)) : ''}
@@ -416,16 +492,24 @@ const REG_SCRIPTS = `<script>(function () {
   const vscode = acquireVsCodeApi();
   let activeRepo = null;
 
-  const menu   = document.getElementById('reg-ctx-menu');
-  const menuItem = document.getElementById('reg-ctx-set-primary');
+  const menu = document.getElementById('reg-ctx-menu');
+  const itemSetPrimary  = document.getElementById('reg-ctx-set-primary');
+  const itemGenerateDhf = document.getElementById('reg-ctx-generate-dhf');
 
   document.addEventListener('contextmenu', e => {
     if (menu) menu.style.display = 'none';
-    const tr = e.target.closest('tr[data-repo-type="code"]');
+    const tr = e.target.closest('tr[data-repo-type="code"], tr[data-repo-type="docs"]');
     if (!tr || !menu) return;
     e.preventDefault();
-    activeRepo = { name: tr.dataset.repoName, isPrimary: tr.dataset.isPrimary === 'true' };
-    menuItem.textContent = activeRepo.isPrimary ? 'Unset Primary' : 'Set as Primary';
+    const repoType = tr.dataset.repoType;
+    activeRepo = { name: tr.dataset.repoName, type: repoType, isPrimary: tr.dataset.isPrimary === 'true' };
+    if (itemSetPrimary) {
+      itemSetPrimary.style.display = repoType === 'code' ? '' : 'none';
+      if (repoType === 'code') {
+        itemSetPrimary.textContent = activeRepo.isPrimary ? 'Unset Primary' : 'Set as Primary';
+      }
+    }
+    if (itemGenerateDhf) itemGenerateDhf.style.display = repoType === 'docs' ? '' : 'none';
     menu.style.left = e.clientX + 'px';
     menu.style.top  = e.clientY + 'px';
     menu.style.display = 'block';
@@ -435,12 +519,18 @@ const REG_SCRIPTS = `<script>(function () {
     if (menu) menu.style.display = 'none';
   });
 
-  menuItem?.addEventListener('click', () => {
+  itemSetPrimary?.addEventListener('click', () => {
     if (!activeRepo) return;
     vscode.postMessage({
       command: 'setPrimaryRepo',
       name: activeRepo.isPrimary ? '' : activeRepo.name,
     });
+    activeRepo = null;
+  });
+
+  itemGenerateDhf?.addEventListener('click', () => {
+    if (!activeRepo) return;
+    vscode.postMessage({ command: 'generateDhf', docsRepoName: activeRepo.name });
     activeRepo = null;
   });
 })();</script>`;

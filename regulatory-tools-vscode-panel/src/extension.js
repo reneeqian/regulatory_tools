@@ -12,6 +12,10 @@ function activate(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand('regulatory.refresh', () => provider.refresh())
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('regulatory.generateDhf', () => provider.generateDhf())
+  );
 }
 
 function deactivate() {}

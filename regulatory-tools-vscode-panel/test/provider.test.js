@@ -507,6 +507,37 @@ test('supporting repo row shows — when not in traceMap', () => {
   assert.ok(toolkitRow.includes('>—<'), 'req cov cell should be — when no trace data');
 });
 
+// ── _buildDashboard — generate-DHF menu item (REG-011) ────────────────────────
+
+console.log('\n_buildDashboard — generate-DHF menu item (REG-011)');
+
+test('_buildDashboard HTML includes reg-ctx-generate-dhf menu item', () => {
+  const roles = { primary: null, supporting: [], docs: [], all: [] };
+  const html = p._buildDashboard(roles, {}, {}, [], [], {}, null);
+  assert.ok(
+    html.includes('reg-ctx-generate-dhf'),
+    'dashboard HTML should include the generate-DHF context menu item'
+  );
+});
+
+test('_buildDashboard HTML still includes reg-ctx-set-primary menu item', () => {
+  const roles = { primary: null, supporting: [], docs: [], all: [] };
+  const html = p._buildDashboard(roles, {}, {}, [], [], {}, null);
+  assert.ok(
+    html.includes('reg-ctx-set-primary'),
+    'dashboard HTML should still include the set-primary context menu item'
+  );
+});
+
+test('REG_SCRIPTS handles contextmenu on docs rows (contains docs selector)', () => {
+  const roles = { primary: null, supporting: [], docs: [], all: [] };
+  const html = p._buildDashboard(roles, {}, {}, [], [], {}, null);
+  assert.ok(
+    html.includes('generateDhf'),
+    'embedded script should reference generateDhf command'
+  );
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 console.log(`\n${passed + failed} tests: ${passed} passed, ${failed} failed\n`);
